@@ -62,7 +62,7 @@ export default function Navbar() {
             >
                 <div className="max-w-7xl mx-auto px-4 py-2 flex items-center justify-center gap-2">
                     <Zap className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
-                    <p className="text-xs text-white/60 tracking-widest uppercase font-light">
+                    <p className="text-xs text-gray-500 tracking-widest uppercase font-light">
                         Free shipping on orders over{" "}
                         <span className="text-cyan-400 font-medium">$99</span>
                     </p>
@@ -76,13 +76,12 @@ export default function Navbar() {
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ duration: 0.7, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
                 className={cn(
-                    "sticky top-0 z-40 w-full transition-all duration-500 bg-zinc-900", // add bg-zinc-900 here
+                    "sticky top-0 z-40 w-full transition-all duration-500",
                     scrolled
-                        ? "backdrop-blur-xl bg-gradient-to-b from-zinc-900/90 to-zinc-900/70 border-b border-grey/10 shadow-[0_8px_32px_rgba(0,0,0,0.6)]"
-                        : "backdrop-blur-lg bg-gradient-to-b from-zinc-900/80 to-zinc-900/60 border-b border-grey/5"
+                        ? "backdrop-blur-xl bg-gradient-to-b from-zinc-900/90 to-zinc-900/70 border-b border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.6)]"
+                        : "backdrop-blur-lg bg-gradient-to-b from-zinc-900/80 to-zinc-900/60 border-b border-white/5"
                 )}
             >
-
                 <nav className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
                     {/* Logo */}
                     <Link href="/" className="flex items-center gap-2 group flex-shrink-0">
