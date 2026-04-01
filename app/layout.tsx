@@ -52,9 +52,9 @@ export default function RootLayout({
         />
 
         <Providers>
-          <Navbar />
+          
           <main className="relative z-10 flex-1">{children}</main>
-          <Footer />
+         
         </Providers>
       </body>
     </html>

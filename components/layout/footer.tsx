@@ -13,11 +13,10 @@ import {
     Truck,
     RotateCcw,
     Headphones,
-    // Social replacements (lucide dropped Twitter/Github/Instagram/Youtube)
-    MessageCircle,   // → Twitter/X
-    Code2,           // → GitHub
-    Camera,          // → Instagram
-    Play,            // → YouTube
+    MessageCircle,  
+    Code2,         
+    Camera,         
+    Play,         
 } from "lucide-react";
 
 const footerLinks = {
@@ -58,7 +57,6 @@ const features = [
     { icon: Headphones, label: "24/7 Support", sub: "Always here" },
 ];
 
-// ✅ Fix: typed as Variants + ease must be a string, not number[]
 const containerVariants: Variants = {
     hidden: { opacity: 0 },
     visible: {
