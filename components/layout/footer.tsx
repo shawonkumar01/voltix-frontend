@@ -13,10 +13,10 @@ import {
     Truck,
     RotateCcw,
     Headphones,
-    MessageCircle,  
-    Code2,         
-    Camera,         
-    Play,         
+    MessageCircle,
+    Code2,
+    Camera,
+    Play,
 } from "lucide-react";
 
 const footerLinks = {
@@ -76,37 +76,10 @@ const itemVariants: Variants = {
 
 export default function Footer() {
     return (
-        <footer className="relative mt-auto border-t border-white/5 bg-black/60 backdrop-blur-xl overflow-hidden">
+        <footer className="relative mt-auto border-t border-white/5 bg-gradient-to-b from-zinc-900/80 to-zinc-900/60 backdrop-blur-xl overflow-hidden">
             {/* Background glow */}
             <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-cyan-500/5 rounded-full blur-[100px] pointer-events-none" />
             <div className="absolute top-0 left-0 w-[400px] h-[200px] bg-amber-500/[0.03] rounded-full blur-[80px] pointer-events-none" />
-
-            {/* Feature strip */}
-            <div className="border-b border-white/5">
-                <motion.div
-                    variants={containerVariants}
-                    initial="hidden"
-                    whileInView="visible"
-                    viewport={{ once: true, margin: "-50px" }}
-                    className="max-w-7xl mx-auto px-4 sm:px-6 py-8 grid grid-cols-2 md:grid-cols-4 gap-4"
-                >
-                    {features.map(({ icon: Icon, label, sub }) => (
-                        <motion.div
-                            key={label}
-                            variants={itemVariants}
-                            className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/5 hover:bg-white/[0.06] hover:border-white/10 transition-all duration-300 group"
-                        >
-                            <div className="w-9 h-9 rounded-lg bg-cyan-400/10 border border-cyan-400/20 flex items-center justify-center group-hover:bg-cyan-400/20 transition-all duration-300 flex-shrink-0">
-                                <Icon className="w-4 h-4 text-cyan-400" />
-                            </div>
-                            <div>
-                                <p className="text-xs font-semibold text-white/80">{label}</p>
-                                <p className="text-[11px] text-white/30">{sub}</p>
-                            </div>
-                        </motion.div>
-                    ))}
-                </motion.div>
-            </div>
 
             {/* Main footer content */}
             <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12">
@@ -179,7 +152,7 @@ export default function Footer() {
                             </h4>
                             <ul className="flex flex-col gap-2.5">
                                 {links.map((link) => (
-                                    <li key={link.href}>
+                                    <li key={`${link.label}-${link.href}`}>
                                         <Link
                                             href={link.href}
                                             className="group flex items-center gap-1 text-sm text-white/45 hover:text-white transition-colors duration-200"
