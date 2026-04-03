@@ -10,6 +10,7 @@ import { cartApi } from "@/lib/api/cart";
 import { wishlistApi } from "@/lib/api/wishlist";
 import { useAuthStore } from "@/stores/auth.store";
 import { useCartStore } from "@/stores/cart.store";
+import { formatPrice, toNumber } from "@/lib/utils/format";
 import { useState } from "react";
 
 interface Product {
@@ -31,7 +32,7 @@ function ProductCard({ product, index }: { product: Product; index: number }) {
     const [addingCart, setAddingCart] = useState(false);
     const [wishlisted, setWishlisted] = useState(false);
 
-    const price = Number(product.price);
+    const price = toNumber(product.price);
 
     const discountedPrice = product.discount
         ? price * (1 - product.discount / 100)
@@ -170,10 +171,10 @@ function ProductCard({ product, index }: { product: Product; index: number }) {
 
                         <div className="flex items-baseline gap-2">
                             <span className="text-base font-black text-white" style={{ fontFamily: "'Syne', sans-serif" }}>
-                                ${discountedPrice.toFixed(2)}
+                                ${formatPrice(discountedPrice)}
                             </span>
                             {(product.discount ?? 0) > 0 && (
-                                <span className="text-xs text-white/25 line-through">${price.toFixed(2)}</span>
+                                <span className="text-xs text-white/25 line-through">${formatPrice(price)}</span>
                             )}
                         </div>
                     </div>

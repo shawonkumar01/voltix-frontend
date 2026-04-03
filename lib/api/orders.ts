@@ -1,7 +1,8 @@
 import api from "./client";
+import { Order } from "@/types";
 
 export const ordersApi = {
-    create: (data: unknown) => api.post("/orders", data),
+    create: (data: Partial<Order>) => api.post("/orders", data),
     getMy: () => api.get("/orders/my"),
     getMyOne: (id: string) => api.get(`/orders/my/${id}`),
     cancel: (id: string, reason: string) =>

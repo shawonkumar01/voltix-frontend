@@ -1,7 +1,8 @@
 import axios from "axios";
+import { env } from "@/lib/validation";
 
 const api = axios.create({
-    baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api",
+    baseURL: env.NEXT_PUBLIC_API_URL,
     withCredentials: true,
 });
 
