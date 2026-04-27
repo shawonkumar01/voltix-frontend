@@ -42,10 +42,9 @@ interface Props {
 // ─── Product Card (Grid) ──────────────────────────────────────────────────────
 function ProductCard({ product, index }: { product: Product; index: number }) {
     const { user } = useAuthStore();
-    const increment = useCartStore((s) => s.increment);
+    const addItem = useCartStore((s) => s.addItem);
     const [addingCart, setAddingCart] = useState(false);
     const [wishlisted, setWishlisted] = useState(false);
-
 
     const finalPrice = product.discount
         ? toNumber(product.price) * (1 - toNumber(product.discount) / 100)
@@ -57,7 +56,19 @@ function ProductCard({ product, index }: { product: Product; index: number }) {
         setAddingCart(true);
         try {
             await cartApi.add(product.id, 1);
-            increment();
+            addItem({
+                id: product.id,
+                quantity: 1,
+                product: {
+                    id: product.id,
+                    name: product.name,
+                    price: product.price,
+                    discount: product.discount,
+                    images: product.images,
+                    brand: product.brand,
+                    stock: product.stock,
+                }
+            });
             toast.success("Added to cart ⚡");
         } catch { toast.error("Failed to add"); }
         finally { setAddingCart(false); }
@@ -186,7 +197,7 @@ function ProductCard({ product, index }: { product: Product; index: number }) {
 // ─── Product Row (List) ───────────────────────────────────────────────────────
 function ProductRow({ product, index }: { product: Product; index: number }) {
     const { user } = useAuthStore();
-    const increment = useCartStore((s) => s.increment);
+    const addItem = useCartStore((s) => s.addItem);
     const [addingCart, setAddingCart] = useState(false);
 
     const finalPrice = product.discount
@@ -199,7 +210,19 @@ function ProductRow({ product, index }: { product: Product; index: number }) {
         setAddingCart(true);
         try {
             await cartApi.add(product.id, 1);
-            increment();
+            addItem({
+                id: product.id,
+                quantity: 1,
+                product: {
+                    id: product.id,
+                    name: product.name,
+                    price: product.price,
+                    discount: product.discount,
+                    images: product.images,
+                    brand: product.brand,
+                    stock: product.stock,
+                }
+            });
             toast.success("Added to cart ⚡");
         } catch { toast.error("Failed to add"); }
         finally { setAddingCart(false); }

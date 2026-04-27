@@ -25,10 +25,14 @@ export const useAuthStore = create<AuthStore>()(
             token: null,
             setAuth: (user, token) => {
                 localStorage.setItem("voltix_token", token);
+                // Clear local cart when logging in
+                localStorage.removeItem("voltix_cart");
                 set({ user, token });
             },
             clearAuth: () => {
                 localStorage.removeItem("voltix_token");
+                // Clear local cart when logging out
+                localStorage.removeItem("voltix_cart");
                 set({ user: null, token: null });
             },
             isAdmin: () => get().user?.role === "admin",

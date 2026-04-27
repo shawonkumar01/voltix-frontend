@@ -186,7 +186,7 @@ export default function Navbar() {
                             <NavIconBtn aria-label="Cart" className="relative">
                                 <ShoppingCart className="w-4 h-4" />
                                 <AnimatePresence>
-                                    {itemCount > 0 && (
+                                    {user && itemCount > 0 && (
                                         <motion.span
                                             key="badge"
                                             initial={{ scale: 0 }}
