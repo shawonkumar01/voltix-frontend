@@ -78,9 +78,15 @@ export default function CategoriesPage() {
                                     {/* Image */}
                                     <div className="relative aspect-square bg-white/[0.02] overflow-hidden">
                                         {category.image ? (
-                                            <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                                                <span className="text-xs text-gray-500">Image</span>
-                                            </div>
+                                            <img 
+                                                src={category.image} 
+                                                alt={category.name}
+                                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                                onError={(e) => {
+                                                    console.error("Category image failed:", category.image);
+                                                    (e.target as HTMLImageElement).style.display = 'none';
+                                                }}
+                                            />
                                         ) : (
                                             <div className="w-full h-full flex items-center justify-center">
                                                 <Package className="w-12 h-12 text-white/[0.05]" />

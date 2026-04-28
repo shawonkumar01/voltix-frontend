@@ -122,8 +122,9 @@ export const useCartStore = create<CartStore>()(
     {
       name: "voltix_cart",
       storage: createJSONStorage(() => localStorage),
-      // Don't rehydrate cart data - always get fresh from API
-      skipHydration: true,
+      onRehydrateStorage: (state) => {
+        console.log('Cart rehydrated:', state);
+      },
     }
   )
 );

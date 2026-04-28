@@ -16,7 +16,7 @@ import {
 
 // Environment variable validation
 const envSchema = z.object({
-  NEXT_PUBLIC_API_URL: z.string().url().default("http://localhost:3001/api"),
+  NEXT_PUBLIC_API_URL: z.string().url().default("http://localhost:9000/api"),
   NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: z.string().optional(),
 });
 

@@ -115,7 +115,7 @@ export default function OrdersPage() {
                                             className="text-lg font-black text-white"
                                             style={{ fontFamily: "'Syne', sans-serif" }}
                                         >
-                                            ${order.total?.toFixed(2) || "0.00"}
+                                            ${Number(order.totalAmount || order.total || 0).toFixed(2)}
                                         </p>
                                     </div>
 

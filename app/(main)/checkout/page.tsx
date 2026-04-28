@@ -18,15 +18,14 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
 const checkoutSchema = z.object({
-    shippingAddress: z.object({
-        fullName: z.string().min(2, "Full name is required"),
-        address: z.string().min(5, "Address is required"),
-        city: z.string().min(2, "City is required"),
-        state: z.string().min(2, "State is required"),
-        zipCode: z.string().min(5, "ZIP code is required"),
-        country: z.string().min(2, "Country is required"),
-        phone: z.string().min(10, "Phone number is required"),
-    }),
+    shippingFirstName: z.string().min(2, "First name is required"),
+    shippingLastName: z.string().min(2, "Last name is required"),
+    shippingAddress: z.string().min(5, "Address is required"),
+    shippingCity: z.string().min(2, "City is required"),
+    shippingState: z.string().min(2, "State is required"),
+    shippingZip: z.string().min(5, "ZIP code is required"),
+    shippingCountry: z.string().min(2, "Country is required"),
+    shippingPhone: z.string().min(10, "Phone number is required"),
 });
 
 type CheckoutForm = z.infer<typeof checkoutSchema>;
@@ -45,10 +44,9 @@ export default function CheckoutPage() {
     } = useForm<CheckoutForm>({
         resolver: zodResolver(checkoutSchema),
         defaultValues: {
-            shippingAddress: {
-                fullName: user ? `${user.firstName} ${user.lastName}` : "",
-                country: "United States",
-            },
+            shippingFirstName: user?.firstName || "",
+            shippingLastName: user?.lastName || "",
+            shippingCountry: "United States",
         },
     });
 
@@ -93,16 +91,20 @@ export default function CheckoutPage() {
 
     // Create order mutation
     const createOrderMutation = useMutation({
-        mutationFn: (data: CheckoutForm) =>
-            ordersApi.create({
-                items: items.map((item: any) => ({
-                    productId: item.product.id,
-                    quantity: item.quantity,
-                    price: item.product.price,
-                })),
+        mutationFn: (data: CheckoutForm) => {
+            const orderData: Partial<any> = {
+                shippingFirstName: data.shippingFirstName,
+                shippingLastName: data.shippingLastName,
                 shippingAddress: data.shippingAddress,
-                total,
-            }),
+                shippingCity: data.shippingCity,
+                shippingState: data.shippingState,
+                shippingZip: data.shippingZip,
+                shippingCountry: data.shippingCountry,
+                shippingPhone: data.shippingPhone,
+                paymentMethod: "stripe",
+            };
+            return ordersApi.create(orderData);
+        },
         onSuccess: (res) => {
             const orderId = res.data.id || res.data.order?.id;
             setOrderCreated(orderId);
@@ -134,13 +136,20 @@ export default function CheckoutPage() {
         setIsProcessing(true);
         try {
             // Step 1: Create order
-            await createOrderMutation.mutateAsync(data);
+            console.log('Submitting order data:', data);
+            const orderResult = await createOrderMutation.mutateAsync(data);
+            console.log('Order creation result:', orderResult);
+            const orderId = orderResult.data?.id || orderResult.data?.order?.id;
+            console.log('Extracted order ID:', orderId);
             
-            // Step 2: Process payment (simplified - in real app, redirect to Stripe)
-            if (orderCreated) {
-                await paymentMutation.mutateAsync(orderCreated);
+            if (orderId) {
+                // Step 2: Process payment (simplified - in real app, redirect to Stripe)
+                console.log('Processing payment for order ID:', orderId);
+                await paymentMutation.mutateAsync(orderId);
+                console.log('Payment processed successfully');
             }
         } catch (error) {
+            console.error('Order submission error:', error);
             setIsProcessing(false);
         }
     };
@@ -210,18 +219,33 @@ export default function CheckoutPage() {
                                 </div>
 
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    <div className="sm:col-span-2">
+                                    <div>
                                         <label className="block text-xs font-semibold text-white/40 uppercase tracking-widest mb-2">
-                                            Full Name
+                                            First Name
                                         </label>
                                         <input
-                                            {...register("shippingAddress.fullName")}
+                                            {...register("shippingFirstName")}
                                             type="text"
-                                            placeholder="John Doe"
+                                            placeholder="John"
                                             className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-white/20 outline-none focus:border-cyan-400/50 focus:bg-white/[0.07] transition-all"
                                         />
-                                        {errors.shippingAddress?.fullName && (
-                                            <p className="text-xs text-red-400/80 mt-1">{errors.shippingAddress.fullName.message}</p>
+                                        {errors.shippingFirstName && (
+                                            <p className="text-xs text-red-400/80 mt-1">{errors.shippingFirstName.message}</p>
+                                        )}
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-xs font-semibold text-white/40 uppercase tracking-widest mb-2">
+                                            Last Name
+                                        </label>
+                                        <input
+                                            {...register("shippingLastName")}
+                                            type="text"
+                                            placeholder="Doe"
+                                            className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-white/20 outline-none focus:border-cyan-400/50 focus:bg-white/[0.07] transition-all"
+                                        />
+                                        {errors.shippingLastName && (
+                                            <p className="text-xs text-red-400/80 mt-1">{errors.shippingLastName.message}</p>
                                         )}
                                     </div>
 
@@ -230,13 +254,13 @@ export default function CheckoutPage() {
                                             Address
                                         </label>
                                         <input
-                                            {...register("shippingAddress.address")}
+                                            {...register("shippingAddress")}
                                             type="text"
                                             placeholder="123 Main Street"
                                             className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-white/20 outline-none focus:border-cyan-400/50 focus:bg-white/[0.07] transition-all"
                                         />
-                                        {errors.shippingAddress?.address && (
-                                            <p className="text-xs text-red-400/80 mt-1">{errors.shippingAddress.address.message}</p>
+                                        {errors.shippingAddress && (
+                                            <p className="text-xs text-red-400/80 mt-1">{errors.shippingAddress.message}</p>
                                         )}
                                     </div>
 
@@ -245,13 +269,13 @@ export default function CheckoutPage() {
                                             City
                                         </label>
                                         <input
-                                            {...register("shippingAddress.city")}
+                                            {...register("shippingCity")}
                                             type="text"
                                             placeholder="New York"
                                             className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-white/20 outline-none focus:border-cyan-400/50 focus:bg-white/[0.07] transition-all"
                                         />
-                                        {errors.shippingAddress?.city && (
-                                            <p className="text-xs text-red-400/80 mt-1">{errors.shippingAddress.city.message}</p>
+                                        {errors.shippingCity && (
+                                            <p className="text-xs text-red-400/80 mt-1">{errors.shippingCity.message}</p>
                                         )}
                                     </div>
 
@@ -260,13 +284,13 @@ export default function CheckoutPage() {
                                             State
                                         </label>
                                         <input
-                                            {...register("shippingAddress.state")}
+                                            {...register("shippingState")}
                                             type="text"
                                             placeholder="NY"
                                             className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-white/20 outline-none focus:border-cyan-400/50 focus:bg-white/[0.07] transition-all"
                                         />
-                                        {errors.shippingAddress?.state && (
-                                            <p className="text-xs text-red-400/80 mt-1">{errors.shippingAddress.state.message}</p>
+                                        {errors.shippingState && (
+                                            <p className="text-xs text-red-400/80 mt-1">{errors.shippingState.message}</p>
                                         )}
                                     </div>
 
@@ -275,13 +299,13 @@ export default function CheckoutPage() {
                                             ZIP Code
                                         </label>
                                         <input
-                                            {...register("shippingAddress.zipCode")}
+                                            {...register("shippingZip")}
                                             type="text"
                                             placeholder="10001"
                                             className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-white/20 outline-none focus:border-cyan-400/50 focus:bg-white/[0.07] transition-all"
                                         />
-                                        {errors.shippingAddress?.zipCode && (
-                                            <p className="text-xs text-red-400/80 mt-1">{errors.shippingAddress.zipCode.message}</p>
+                                        {errors.shippingZip && (
+                                            <p className="text-xs text-red-400/80 mt-1">{errors.shippingZip.message}</p>
                                         )}
                                     </div>
 
@@ -290,28 +314,28 @@ export default function CheckoutPage() {
                                             Country
                                         </label>
                                         <input
-                                            {...register("shippingAddress.country")}
+                                            {...register("shippingCountry")}
                                             type="text"
                                             placeholder="United States"
                                             className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-white/20 outline-none focus:border-cyan-400/50 focus:bg-white/[0.07] transition-all"
                                         />
-                                        {errors.shippingAddress?.country && (
-                                            <p className="text-xs text-red-400/80 mt-1">{errors.shippingAddress.country.message}</p>
+                                        {errors.shippingCountry && (
+                                            <p className="text-xs text-red-400/80 mt-1">{errors.shippingCountry.message}</p>
                                         )}
                                     </div>
 
-                                    <div className="sm:col-span-2">
+                                    <div>
                                         <label className="block text-xs font-semibold text-white/40 uppercase tracking-widest mb-2">
                                             Phone
                                         </label>
                                         <input
-                                            {...register("shippingAddress.phone")}
+                                            {...register("shippingPhone")}
                                             type="tel"
-                                            placeholder="+1 (555) 123-4567"
+                                            placeholder="+1234567890"
                                             className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-white/20 outline-none focus:border-cyan-400/50 focus:bg-white/[0.07] transition-all"
                                         />
-                                        {errors.shippingAddress?.phone && (
-                                            <p className="text-xs text-red-400/80 mt-1">{errors.shippingAddress.phone.message}</p>
+                                        {errors.shippingPhone && (
+                                            <p className="text-xs text-red-400/80 mt-1">{errors.shippingPhone.message}</p>
                                         )}
                                     </div>
                                 </div>
