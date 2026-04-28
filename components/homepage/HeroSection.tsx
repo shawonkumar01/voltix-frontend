@@ -180,7 +180,7 @@ export default function HeroSection() {
                                 <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
                             </Link>
                             <Link
-                                href="/products?isFeatured=true"
+                                href="/deals"
                                 className="inline-flex items-center gap-2 px-7 py-4 bg-white/5 text-white/70 text-sm font-semibold rounded-2xl border border-white/10 hover:bg-white/10 hover:text-white hover:border-white/20 transition-all duration-200"
                             >
                                 View deals
