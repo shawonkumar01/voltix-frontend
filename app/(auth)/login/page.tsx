@@ -34,11 +34,18 @@ export default function LoginPage() {
     const onSubmit = async (data: LoginForm) => {
         setIsLoading(true);
         try {
-            const res = await authApi.login(data);
-            const { user, token } = res.data;
-            setAuth(user, token);
-            toast.success(`Welcome back, ${user.firstName}! ⚡`);
-            router.push(user.role === "admin" ? "/admin" : "/");
+            const success = await useAuthStore.getState().login(data.email, data.password);
+            if (success) {
+                const { user } = useAuthStore.getState();
+                if (user) {
+                    toast.success(`Welcome back, ${user.firstName}! ⚡`);
+                    router.push(user.role === "admin" ? "/admin" : "/");
+                } else {
+                    toast.error("Login failed - no user data");
+                }
+            } else {
+                toast.error("Invalid credentials");
+            }
         } catch (err: unknown) {
             const error = err as { response?: { data?: { message?: string } } };
             toast.error(error?.response?.data?.message || "Invalid credentials");

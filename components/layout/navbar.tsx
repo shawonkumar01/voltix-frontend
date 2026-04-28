@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { useAuthStore } from "@/stores/auth.store";
 import { useCartStore } from "@/stores/cart.store";
+import { useWishlistStore } from "@/stores/wishlist.store";
 import { cn } from "@/lib/utils";
 
 const navLinks = [
@@ -39,6 +40,7 @@ export default function Navbar() {
     const pathname = usePathname();
     const { user, clearAuth, isAdmin } = useAuthStore();
     const { itemCount } = useCartStore();
+    const { itemCount: wishlistCount } = useWishlistStore();
 
     useEffect(() => {
         const onScroll = () => setScrolled(window.scrollY > 20);
@@ -176,8 +178,21 @@ export default function Navbar() {
 
                         {/* Wishlist */}
                         <Link href="/wishlist">
-                            <NavIconBtn aria-label="Wishlist">
+                            <NavIconBtn aria-label="Wishlist" className="relative">
                                 <Heart className="w-4 h-4" />
+                                <AnimatePresence>
+                                    {user && wishlistCount > 0 && (
+                                        <motion.span
+                                            key="wishlist-badge"
+                                            initial={{ scale: 0 }}
+                                            animate={{ scale: 1 }}
+                                            exit={{ scale: 0 }}
+                                            className="absolute -top-1 -right-1 w-4 h-4 bg-red-400 text-white text-[10px] font-bold rounded-full flex items-center justify-center"
+                                        >
+                                            {wishlistCount > 9 ? "9+" : wishlistCount}
+                                        </motion.span>
+                                    )}
+                                </AnimatePresence>
                             </NavIconBtn>
                         </Link>
 

@@ -39,13 +39,16 @@ function ProductCard({ product, index }: { product: Product; index: number }) {
         : price;
     const handleAddToCart = async (e: React.MouseEvent) => {
         e.preventDefault();
-        if (!user) { toast.error("Please sign in to add to cart"); return; }
+        if (!user) { 
+            toast.error("Please sign in to add to cart"); 
+            return; 
+        }
         setAddingCart(true);
         try {
             await cartApi.add(product.id, 1);
             increment();
             toast.success("Added to cart ⚡");
-        } catch {
+        } catch (error: any) {
             toast.error("Failed to add to cart");
         } finally {
             setAddingCart(false);

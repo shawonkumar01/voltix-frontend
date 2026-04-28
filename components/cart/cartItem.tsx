@@ -32,8 +32,8 @@ export default function CartItem({ item, index }: CartItemProps) {
     const [localQty, setLocalQty] = useState(item.quantity);
 
     const finalPrice = item.product.discount
-        ? item.product.price * (1 - item.product.discount / 100)
-        : item.product.price;
+        ? Number(item.product.price) * (1 - Number(item.product.discount) / 100)
+        : Number(item.product.price);
     const lineTotal = finalPrice * localQty;
 
     const updateMutation = useMutation({
@@ -108,9 +108,9 @@ export default function CartItem({ item, index }: CartItemProps) {
                     <span className="text-sm font-black text-white/70" style={{ fontFamily: "'Syne', sans-serif" }}>
                         ${finalPrice.toFixed(2)}
                     </span>
-                    {(item.product.discount ?? 0) > 0 && (
+                    {(Number(item.product.discount) ?? 0) > 0 && (
                         <>
-                            <span className="text-xs text-white/20 line-through">${item.product.price.toFixed(2)}</span>
+                            <span className="text-xs text-white/20 line-through">${Number(item.product.price).toFixed(2)}</span>
                             <span className="text-[10px] text-amber-400/70 font-semibold">-{item.product.discount}%</span>
                         </>
                     )}

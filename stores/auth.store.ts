@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { persist, createJSONStorage } from "zustand/middleware";
 
 interface User {
     id: string;
@@ -16,6 +16,8 @@ interface AuthStore {
     setAuth: (user: User, token: string) => void;
     clearAuth: () => void;
     isAdmin: () => boolean;
+    login: (email: string, password: string) => Promise<boolean>;
+    logout: () => void;
 }
 
 export const useAuthStore = create<AuthStore>()(
@@ -36,7 +38,34 @@ export const useAuthStore = create<AuthStore>()(
                 set({ user: null, token: null });
             },
             isAdmin: () => get().user?.role === "admin",
+            login: async (email: string, password: string) => {
+                try {
+                    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/login`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ email, password }),
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        const { user, accessToken } = data;
+                        get().setAuth(user, accessToken);
+                        return true;
+                    }
+                    return false;
+                } catch (error) {
+                    return false;
+                }
+            },
+            logout: () => {
+                get().clearAuth();
+            },
         }),
-        { name: "voltix_auth" }
+        {
+            name: "voltix_auth",
+            storage: createJSONStorage(() => localStorage),
+        }
     )
 );

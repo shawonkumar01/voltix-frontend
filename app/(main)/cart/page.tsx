@@ -33,37 +33,40 @@ export default function CartPage() {
     const router = useRouter();
     const { user } = useAuthStore();
     const queryClient = useQueryClient();
-    const { setCart, clearCart } = useCartStore();
+    const { syncFromAPI, clearCart } = useCartStore();
 
-    // Redirect if not logged in
+    // Redirect if user is not authenticated
     useEffect(() => {
-        if (!user) {
+        if (user === null) {
             toast.error("Please sign in to view your cart");
             router.push("/login");
         }
     }, [user, router]);
 
-    const { data, isLoading, isError } = useQuery({
+    const { data, isLoading, isError, refetch } = useQuery({
         queryKey: ["cart"],
         queryFn: async () => {
             const res = await cartApi.get();
             return res.data;
         },
         enabled: !!user,
+        staleTime: 0, // Always consider data stale
+        refetchOnWindowFocus: true, // Refetch when window gains focus
+        refetchOnMount: true, // Always refetch when component mounts
     });
 
     const items: CartItemType[] = data?.items || data?.cart?.items || [];
 
-    // Sync local cart store with server cart
+    // Sync local cart store with server cart using new syncFromAPI method
     useEffect(() => {
         if (data && !isLoading) {
             if (items.length === 0) {
                 clearCart();
             } else {
-                setCart({ items });
+                syncFromAPI({ items });
             }
         }
-    }, [data, items, isLoading, setCart, clearCart]);
+    }, [data, items, isLoading, clearCart, syncFromAPI]);
 
     const clearMutation = useMutation({
         mutationFn: () => cartApi.clear(),
@@ -78,8 +81,8 @@ export default function CartPage() {
     // Price calculations
     const subtotal = items.reduce((acc, item) => {
         const price = item.product.discount
-            ? item.product.price * (1 - item.product.discount / 100)
-            : item.product.price;
+            ? Number(item.product.price) * (1 - Number(item.product.discount) / 100)
+            : Number(item.product.price);
         return acc + price * item.quantity;
     }, 0);
     const shipping = subtotal >= 99 ? 0 : 9.99;

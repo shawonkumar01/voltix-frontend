@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { useQueryClient } from "@tanstack/react-query";
 import {
     ShoppingCart, Heart, Star, Zap, TrendingUp,
     PackageX, ChevronLeft, ChevronRight,
@@ -11,6 +12,7 @@ import { toast } from "sonner";
 import { cartApi } from "@/lib/api/cart";
 import { wishlistApi } from "@/lib/api/wishlist";
 import { useAuthStore } from "@/stores/auth.store";
+import { useWishlistStore } from "@/stores/wishlist.store";
 import { useCartStore } from "@/stores/cart.store";
 import { formatPrice, toNumber } from "@/lib/utils/format";
 
@@ -43,8 +45,15 @@ interface Props {
 function ProductCard({ product, index }: { product: Product; index: number }) {
     const { user } = useAuthStore();
     const addItem = useCartStore((s) => s.addItem);
+    const { isInWishlist, addItem: addToWishlistStore, removeItem: removeFromWishlistStore } = useWishlistStore();
+    const queryClient = useQueryClient();
     const [addingCart, setAddingCart] = useState(false);
     const [wishlisted, setWishlisted] = useState(false);
+
+    // Check if product is already in wishlist
+    useEffect(() => {
+        setWishlisted(isInWishlist(product.id));
+    }, [isInWishlist, product.id]);
 
     const finalPrice = product.discount
         ? toNumber(product.price) * (1 - toNumber(product.discount) / 100)
@@ -81,9 +90,14 @@ function ProductCard({ product, index }: { product: Product; index: number }) {
             if (wishlisted) {
                 await wishlistApi.removeByProduct(product.id);
                 setWishlisted(false);
+                removeFromWishlistStore(product.id);
             } else {
                 await wishlistApi.add(product.id);
                 setWishlisted(true);
+                addToWishlistStore({
+                    id: product.id,
+                    product: product
+                });
                 toast.success("Saved ♥");
             }
         } catch { toast.error("Something went wrong"); }
@@ -198,7 +212,14 @@ function ProductCard({ product, index }: { product: Product; index: number }) {
 function ProductRow({ product, index }: { product: Product; index: number }) {
     const { user } = useAuthStore();
     const addItem = useCartStore((s) => s.addItem);
+    const { isInWishlist, addItem: addToWishlistStore, removeItem: removeFromWishlistStore } = useWishlistStore();
     const [addingCart, setAddingCart] = useState(false);
+    const [wishlisted, setWishlisted] = useState(false);
+
+    // Check if product is already in wishlist
+    useEffect(() => {
+        setWishlisted(isInWishlist(product.id));
+    }, [isInWishlist, product.id]);
 
     const finalPrice = product.discount
         ? toNumber(product.price) * (1 - toNumber(product.discount) / 100)

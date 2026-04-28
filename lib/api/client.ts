@@ -17,7 +17,7 @@ api.interceptors.response.use(
     (res) => res,
     (error) => {
         // Only redirect on actual authentication errors, not all 401s
-        if (error.response?.status === 401 && !error.config?.skipAuthRedirect) {
+        if (error.response?.status === 401 && !error.config.skipAuthRedirect) {
             localStorage.removeItem("voltix_token");
             window.location.href = "/login";
         }

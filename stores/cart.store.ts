@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { persist, createJSONStorage } from "zustand/middleware";
 
 interface CartItem {
   id: string;
@@ -27,6 +27,7 @@ interface CartStore {
   increment: () => void;
   decrement: () => void;
   setItemCount: (count: number) => void;
+  syncFromAPI: (apiData: { items: CartItem[] }) => void;
   // Computed values
   getTotalItems: () => number;
   getTotalPrice: () => number;
@@ -48,6 +49,16 @@ export const useCartStore = create<CartStore>()(
           0
         );
         set({ items: cart.items, itemCount, total });
+      },
+
+      // New method to sync from API - takes precedence over local data
+      syncFromAPI: (apiData) => {
+        const itemCount = apiData.items.reduce((sum, item) => sum + item.quantity, 0);
+        const total = apiData.items.reduce(
+          (sum, item) => sum + item.product.price * item.quantity,
+          0
+        );
+        set({ items: apiData.items, itemCount, total });
       },
 
       addItem: (item) => {
@@ -108,6 +119,11 @@ export const useCartStore = create<CartStore>()(
         return item ? item.quantity : 0;
       },
     }),
-    { name: "voltix_cart" }
+    {
+      name: "voltix_cart",
+      storage: createJSONStorage(() => localStorage),
+      // Don't rehydrate cart data - always get fresh from API
+      skipHydration: true,
+    }
   )
 );

@@ -8,15 +8,17 @@ import { Heart, Trash2, ArrowRight, Loader2, ShoppingBag } from "lucide-react";
 import { toast } from "sonner";
 import { wishlistApi } from "@/lib/api/wishlist";
 import { useAuthStore } from "@/stores/auth.store";
+import { useWishlistStore } from "@/stores/wishlist.store";
 
 export default function WishlistPage() {
     const router = useRouter();
     const { user } = useAuthStore();
     const queryClient = useQueryClient();
+    const { removeItem: removeFromWishlistStore, clearWishlist } = useWishlistStore();
 
-    // Redirect if not logged in
+    // Only redirect if user is not authenticated
     useEffect(() => {
-        if (!user) {
+        if (user === null) {
             toast.error("Please sign in to view your wishlist");
             router.push("/login");
         }
@@ -29,14 +31,18 @@ export default function WishlistPage() {
             return res.data;
         },
         enabled: !!user,
+        staleTime: 0, // Always consider data stale
+        refetchOnWindowFocus: true, // Refetch when window gains focus
+        refetchOnMount: true, // Always refetch when component mounts
     });
 
-    const items = data?.items || data?.wishlist?.items || [];
+    const items = data?.data || data?.items || data?.wishlist?.items || [];
 
     const removeMutation = useMutation({
         mutationFn: (productId: string) => wishlistApi.removeByProduct(productId),
-        onSuccess: () => {
+        onSuccess: (_, productId) => {
             queryClient.invalidateQueries({ queryKey: ["wishlist"] });
+            removeFromWishlistStore(productId);
             toast.success("Item removed from wishlist");
         },
         onError: () => toast.error("Failed to remove item"),
@@ -46,6 +52,7 @@ export default function WishlistPage() {
         mutationFn: () => wishlistApi.clear(),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["wishlist"] });
+            clearWishlist();
             toast.success("Wishlist cleared");
         },
         onError: () => toast.error("Failed to clear wishlist"),
@@ -154,8 +161,8 @@ export default function WishlistPage() {
                         {items.map((item: any, index: number) => {
                             const product = item.product || item;
                             const finalPrice = product.discount
-                                ? product.price * (1 - product.discount / 100)
-                                : product.price;
+                                ? Number(product.price) * (1 - Number(product.discount) / 100)
+                                : Number(product.price);
 
                             return (
                                 <motion.div
@@ -204,9 +211,9 @@ export default function WishlistPage() {
                                                 <span className="text-sm font-black text-white/70" style={{ fontFamily: "'Syne', sans-serif" }}>
                                                     ${finalPrice.toFixed(2)}
                                                 </span>
-                                                {(product.discount ?? 0) > 0 && (
+                                                {(Number(product.discount) ?? 0) > 0 && (
                                                     <>
-                                                        <span className="text-xs text-white/20 line-through">${product.price.toFixed(2)}</span>
+                                                        <span className="text-xs text-white/20 line-through">${Number(product.price).toFixed(2)}</span>
                                                         <span className="text-[10px] text-amber-400/70 font-semibold">-{product.discount}%</span>
                                                     </>
                                                 )}
