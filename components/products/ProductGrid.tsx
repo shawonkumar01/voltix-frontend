@@ -96,7 +96,8 @@ function ProductCard({ product, index }: { product: Product; index: number }) {
                 setWishlisted(true);
                 addToWishlistStore({
                     id: product.id,
-                    product: product
+                    product: product,
+                    createdAt: ""
                 });
                 toast.success("Saved ♥");
             }

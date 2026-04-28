@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient, UseQueryOptions } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { SlidersHorizontal, X, Search, Grid3X3, List } from "lucide-react";
 import { productsApi } from "@/lib/api/products";
@@ -28,6 +28,7 @@ const LIMIT = 12;
 export default function ProductsPage() {
     const searchParams = useSearchParams();
     const router = useRouter();
+    const queryClient = useQueryClient();
     const [filtersOpen, setFiltersOpen] = useState(false);
     const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
@@ -56,7 +57,8 @@ export default function ProductsPage() {
         });
         // Reset to page 1 on filter change
         if (!("page" in updates)) params.set("page", "1");
-        router.push(`/products?${params.toString()}`);
+        const newUrl = `/products?${params.toString()}`;
+        router.push(newUrl);
     };
 
     const clearAllFilters = () => {
@@ -73,7 +75,7 @@ export default function ProductsPage() {
         filters.isFeatured,
     ].filter(Boolean).length;
 
-    const { data, isLoading, isError } = useQuery({
+    const queryOptions: UseQueryOptions<any, Error> = {
         queryKey: ["products", filters],
         queryFn: async () => {
             const params: Record<string, unknown> = {
@@ -92,12 +94,25 @@ export default function ProductsPage() {
             const res = await productsApi.advancedSearch(params);
             return res.data;
         },
-        placeholderData: (prev) => prev,
-    });
+        enabled: true,
+        staleTime: 0, // Always consider data stale
+        gcTime: 0, // Don't cache at all when filtering
+        refetchOnWindowFocus: false,
+        refetchOnMount: 'always',
+    };
 
-    const products = data?.products || data?.data || [];
-    const total = data?.total || 0;
+    const { data, isLoading, isError } = useQuery(queryOptions);
+
+    const products = data?.data?.data || data?.data || [];
+    const total = data?.data?.total || data?.data?.meta?.total || 0;
     const totalPages = Math.ceil(total / LIMIT);
+
+    // Force refetch when categoryId changes
+    useEffect(() => {
+        if (filters.categoryId) {
+            queryClient.invalidateQueries({ queryKey: ["products"] });
+        }
+    }, [filters.categoryId, queryClient]);
 
     // Close mobile filters on resize
     useEffect(() => {
@@ -206,6 +221,9 @@ export default function ProductsPage() {
                             >
                                 {filters.search && (
                                     <FilterChip label={`Search: ${filters.search}`} onRemove={() => updateFilters({ search: "" })} />
+                                )}
+                                {filters.categoryId && (
+                                    <FilterChip label={`Category: ${filters.categoryId}`} onRemove={() => updateFilters({ categoryId: "" })} />
                                 )}
                                 {filters.brand && (
                                     <FilterChip label={`Brand: ${filters.brand}`} onRemove={() => updateFilters({ brand: "" })} />

@@ -65,7 +65,7 @@ export default function FiltersSidebar({ filters, onUpdate, onClear, activeCount
         },
     });
 
-    const categories = catData?.data || catData || [];
+    const categories = catData?.categories || catData?.data || (Array.isArray(catData) ? catData : []);
 
     const popularBrands = ["Apple", "Samsung", "Sony", "Dell", "LG", "Asus", "Microsoft", "Google"];
 

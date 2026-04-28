@@ -15,7 +15,7 @@ export default function CategoriesPage() {
         },
     });
 
-    const categories = data?.categories || data || [];
+    const categories = data?.categories || data?.data || (Array.isArray(data) ? data : []);
 
     if (isLoading) {
         return (

@@ -1,9 +1,11 @@
 import axios from "axios";
 import { env } from "@/lib/validation";
+import qs from "qs";
 
 const api = axios.create({
     baseURL: env.NEXT_PUBLIC_API_URL,
     withCredentials: true,
+    paramsSerializer: (params) => qs.stringify(params, { arrayFormat: "repeat" }),
 });
 
 api.interceptors.request.use((config) => {
