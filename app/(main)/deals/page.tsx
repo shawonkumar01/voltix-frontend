@@ -77,21 +77,43 @@ export default function DealsPage() {
     const queryOptions = {
         queryKey: ["deals", filters],
         queryFn: async () => {
-            const params: Record<string, unknown> = {
+            const commonParams = {
                 page: filters.page,
                 limit: LIMIT,
                 sortBy: filters.sortBy,
-                isFeatured: true,
             };
-            if (filters.search) params.query = filters.search;
-            if (filters.categoryId) params.categories = [filters.categoryId];
-            if (filters.brand) params.brands = [filters.brand];
-            if (filters.minPrice) params.minPrice = Number(filters.minPrice);
-            if (filters.maxPrice) params.maxPrice = Number(filters.maxPrice);
-            if (filters.inStock) params.inStock = true;
+            
+            // Build filter params
+            const filterParams: Record<string, unknown> = {};
+            if (filters.search) filterParams.query = filters.search;
+            if (filters.categoryId) filterParams.categories = [filters.categoryId];
+            if (filters.brand) filterParams.brands = [filters.brand];
+            if (filters.minPrice) filterParams.minPrice = Number(filters.minPrice);
+            if (filters.maxPrice) filterParams.maxPrice = Number(filters.maxPrice);
+            if (filters.inStock) filterParams.inStock = true;
 
-            const res = await productsApi.advancedSearch(params);
-            return res.data;
+            // Fetch all products with filters
+            const allRes = await productsApi.advancedSearch({
+                ...commonParams,
+                ...filterParams,
+            });
+
+            // Filter client-side for featured OR hot deals (10%+)
+            const allProducts = allRes.data?.data || [];
+            const filteredProducts = allProducts.filter((product: any) => {
+                const isFeatured = product.isFeatured === true;
+                const discount = product.discount ?? 0;
+                const isHotDeal = discount >= 10;
+                
+                return isFeatured || isHotDeal;
+            });
+            
+            return {
+                data: filteredProducts,
+                meta: {
+                    total: filteredProducts.length,
+                },
+            };
         },
     };
 

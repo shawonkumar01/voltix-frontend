@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { SlidersHorizontal, Search } from "lucide-react";
 import { productsApi } from "@/lib/api/products";
 import { categoriesApi } from "@/lib/api/categories";
-import ProductGrid from "@/components/products/ProductGrid";
+import NewArrivalsProductGrid from "@/components/products/NewArrivalsProductGrid";
 import FiltersSidebar from "@/components/products/FiltersSidebar";
 
 export type SortOption = "newest" | "price_low" | "price_high" | "rating" | "name" | "best_selling";
@@ -78,16 +78,16 @@ export default function NewArrivalsPage() {
     const queryOptions = {
         queryKey: ["new-arrivals", filters],
         queryFn: async () => {
-            // Calculate date 1 month ago
-            const oneMonthAgo = new Date();
-            oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
-            const oneMonthAgoISO = oneMonthAgo.toISOString();
+            // Calculate date 30 days ago for new arrivals
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+            const thirtyDaysAgoISO = thirtyDaysAgo.toISOString();
 
             const params: Record<string, unknown> = {
                 page: filters.page,
                 limit: LIMIT,
                 sortBy: filters.sortBy,
-                createdAfter: oneMonthAgoISO,
+                createdAfter: thirtyDaysAgoISO, // Only show new arrivals (last 30 days)
             };
             if (filters.search) params.query = filters.search;
             if (filters.categoryId) params.categories = [filters.categoryId];
@@ -232,7 +232,7 @@ export default function NewArrivalsPage() {
                 </aside>
 
                 <div className="flex-1 min-w-0">
-                    <ProductGrid
+                    <NewArrivalsProductGrid
                         products={products}
                         isLoading={isLoading}
                         isError={isError}
@@ -240,7 +240,7 @@ export default function NewArrivalsPage() {
                         total={total}
                         page={filters.page}
                         totalPages={totalPages}
-                        onPageChange={(p) => updateFilters({ page: p })}
+                        onPageChange={(p: number) => updateFilters({ page: p })}
                     />
                 </div>
             </div>
@@ -274,7 +274,7 @@ export default function NewArrivalsPage() {
                             <div className="p-4">
                                 <FiltersSidebar
                                     filters={filters}
-                                    onUpdate={(u) => { updateFilters(u); }}
+                                    onUpdate={(u: Partial<Filters>) => { updateFilters(u); }}
                                     onClear={() => { clearAllFilters(); setFiltersOpen(false); }}
                                     activeCount={activeFilterCount}
                                 />

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { useQueryClient } from "@tanstack/react-query";
 import {
-    ShoppingCart, Heart, Star, Zap, TrendingUp, Flame,
+    ShoppingCart, Heart, Star, Zap, TrendingUp,
     PackageX, ChevronLeft, ChevronRight,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -317,7 +317,7 @@ function ProductRow({ product, index }: { product: Product; index: number }) {
             transition={{ duration: 0.3, delay: index * 0.03 }}
         >
             <Link href={`/products/${product.id}`} className="group block">
-                <div className={`flex gap-4 p-3.5 bg-white/[0.03] border rounded-2xl hover:bg-white/[0.05] transition-all duration-200 ${getBorderStyle()}`}>
+                <div className={`flex gap-4 p-3.5 bg-white/[0.03] border rounded-2xl overflow-hidden hover:bg-white/[0.05] transition-all duration-200 ${getBorderStyle()}`}>
                     {/* Thumbnail */}
                     <div className="w-20 h-20 rounded-xl bg-white/[0.03] overflow-hidden flex-shrink-0">
                         {product.images?.[0] ? (
@@ -431,7 +431,7 @@ function Pagination({ page, totalPages, onPageChange }: { page: number; totalPag
     );
 }
 
-export default function ProductGrid({ products, isLoading, isError, viewMode, total, page, totalPages, onPageChange }: Props) {
+export default function NewArrivalsProductGrid({ products, isLoading, isError, viewMode, total, page, totalPages, onPageChange }: Props) {
     if (isError) {
         return (
             <div className="text-center py-20">

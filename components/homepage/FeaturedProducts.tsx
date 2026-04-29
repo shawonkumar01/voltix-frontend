@@ -3,7 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowRight, ShoppingCart, Heart, Star, Zap, TrendingUp } from "lucide-react";
+import { ArrowRight, ShoppingCart, Heart, Star, Zap, TrendingUp, Flame } from "lucide-react";
 import { toast } from "sonner";
 import { productsApi } from "@/lib/api/products";
 import { cartApi } from "@/lib/api/cart";
@@ -24,6 +24,7 @@ interface Product {
     reviewCount?: number;
     isFeatured?: boolean;
     stock?: number;
+    createdAt?: string;
 }
 
 function ProductCard({ product, index }: { product: Product; index: number }) {
@@ -37,6 +38,35 @@ function ProductCard({ product, index }: { product: Product; index: number }) {
     const discountedPrice = product.discount
         ? price * (1 - product.discount / 100)
         : price;
+
+    // Check if product is a new arrival (created within 30 days)
+    const isNewArrival = product.createdAt ? new Date(product.createdAt) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) : false;
+    const isHotDeal = (product.discount ?? 0) >= 10;
+    const discount = product.discount ?? 0;
+
+    // Determine border style based on new rules
+    const getBorderStyle = () => {
+        if (isHotDeal && !isNewArrival) {
+            // Only hot deals - orange border
+            return 'border-orange-400/50 shadow-[0_0_20px_rgba(251,146,60,0.3)] hover:border-orange-400/70 hover:shadow-[0_0_30px_rgba(251,146,60,0.5)]';
+        } else if (isNewArrival && !isHotDeal) {
+            // Only new arrival - green border
+            return 'border-green-400/50 shadow-[0_0_20px_rgba(34,197,94,0.3)] hover:border-green-400/70 hover:shadow-[0_0_30px_rgba(34,197,94,0.5)]';
+        } else if (isNewArrival && isHotDeal) {
+            // New arrival + hot deals
+            if (discount >= 25) {
+                // New arrival + hot deals >= 25% - orange border
+                return 'border-orange-400/50 shadow-[0_0_20px_rgba(251,146,60,0.3)] hover:border-orange-400/70 hover:shadow-[0_0_30px_rgba(251,146,60,0.5)]';
+            } else {
+                // New arrival + hot deals < 25% - green border
+                return 'border-green-400/50 shadow-[0_0_20px_rgba(34,197,94,0.3)] hover:border-green-400/70 hover:shadow-[0_0_30px_rgba(34,197,94,0.5)]';
+            }
+        } else {
+            // Default border
+            return 'border-white/[0.08] hover:border-white/[0.15]';
+        }
+    };
+
     const handleAddToCart = async (e: React.MouseEvent) => {
         e.preventDefault();
         if (!user) { 
@@ -81,7 +111,7 @@ function ProductCard({ product, index }: { product: Product; index: number }) {
             transition={{ duration: 0.5, delay: index * 0.07, ease: "easeOut" }}
         >
             <Link href={`/products/${product.id}`} className="group block">
-                <div className="relative bg-white/[0.03] border border-white/[0.08] rounded-2xl overflow-hidden hover:border-white/[0.15] hover:bg-white/[0.05] transition-all duration-300 hover:shadow-[0_8px_40px_rgba(0,0,0,0.4)]">
+                <div className={`relative bg-white/[0.03] border rounded-2xl overflow-hidden hover:bg-white/[0.05] transition-all duration-300 hover:shadow-[0_8px_40px_rgba(0,0,0,0.4)] ${getBorderStyle()}`}>
 
                     {/* Image */}
                     <div className="relative aspect-square bg-white/[0.02] overflow-hidden">
@@ -113,15 +143,23 @@ function ProductCard({ product, index }: { product: Product; index: number }) {
 
                         {/* Badges */}
                         <div className="absolute top-3 left-3 flex flex-col gap-1.5">
-                            {product.isFeatured && (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-cyan-400/15 border border-cyan-400/25 text-[10px] font-bold text-cyan-400 uppercase tracking-wider">
-                                    <TrendingUp className="w-2.5 h-2.5" /> Featured
+                            {product.stock === 0 ? (
+                                <span className="px-2 py-0.5 rounded-lg bg-red-500/30 border border-red-400/50 text-[10px] font-bold text-red-400">
+                                    Sold out
                                 </span>
-                            )}
-                            {(product.discount ?? 0) > 0 && (
-                                <span className="inline-flex px-2 py-0.5 rounded-lg bg-amber-400/15 border border-amber-400/25 text-[10px] font-bold text-amber-400">
-                                    -{product.discount}%
-                                </span>
+                            ) : (
+                                <>
+                                    {product.isFeatured && (
+                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-cyan-400/30 border border-cyan-400/50 text-[10px] font-bold text-cyan-400 uppercase tracking-wider">
+                                            <TrendingUp className="w-2.5 h-2.5" /> Featured
+                                        </span>
+                                    )}
+                                    {(product.discount ?? 0) > 0 && (
+                                        <span className="inline-flex px-2 py-0.5 rounded-lg bg-amber-400/30 border border-amber-400/50 text-[10px] font-bold text-amber-400">
+                                            -{product.discount}%
+                                        </span>
+                                    )}
+                                </>
                             )}
                         </div>
 

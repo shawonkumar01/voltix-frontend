@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import {
     Package, Loader2, Search, Eye, EyeOff, Plus,
-    Edit, Trash2, X, ImageIcon, Upload, DollarSign, Box, Tag, Layers
+    Edit, Trash2, X, ImageIcon, Upload, DollarSign, Box, Tag, Layers, Star
 } from "lucide-react";
 import { toast } from "sonner";
 import { adminApi } from "@/lib/api/admin";
@@ -27,6 +27,11 @@ export default function AdminProductsPage() {
         categoryId: "",
         images: [] as string[],
         specifications: "",
+        isFeatured: false,
+        isActive: true,
+        sku: "",
+        weight: "",
+        dimensions: "",
     });
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -55,6 +60,16 @@ export default function AdminProductsPage() {
             queryClient.invalidateQueries({ queryKey: ["admin-products"] });
         },
         onError: () => toast.error("Failed to update product status"),
+    });
+
+    const toggleFeaturedMutation = useMutation({
+        mutationFn: ({ id, isFeatured }: { id: string; isFeatured: boolean }) => 
+            adminApi.updateProduct(id, { isFeatured: !isFeatured }),
+        onSuccess: () => {
+            toast.success("Product featured status updated");
+            queryClient.invalidateQueries({ queryKey: ["admin-products"] });
+        },
+        onError: () => toast.error("Failed to update featured status"),
     });
 
     const createMutation = useMutation({
@@ -142,6 +157,7 @@ export default function AdminProductsPage() {
             discount: parseFloat(formData.discount),
             stock: parseInt(formData.stock),
             categoryId: formData.categoryId || null,
+            weight: formData.weight ? parseFloat(formData.weight) : null,
         };
 
         if (editingProduct) {
@@ -163,6 +179,11 @@ export default function AdminProductsPage() {
             categoryId: product.categoryId || "",
             images: product.images || [],
             specifications: product.specifications || "",
+            isFeatured: product.isFeatured || false,
+            isActive: product.isActive !== undefined ? product.isActive : true,
+            sku: product.sku || "",
+            weight: product.weight?.toString() || "",
+            dimensions: product.dimensions || "",
         });
         setIsModalOpen(true);
     };
@@ -186,6 +207,11 @@ export default function AdminProductsPage() {
             categoryId: "",
             images: [] as string[],
             specifications: "",
+            isFeatured: false,
+            isActive: true,
+            sku: "",
+            weight: "",
+            dimensions: "",
         });
     };
 
@@ -265,16 +291,28 @@ export default function AdminProductsPage() {
                                     <tr key={product.id} className="text-sm">
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-3">
-                                                <div className="w-12 h-12 rounded-xl bg-white/[0.05] border border-white/[0.08] flex items-center justify-center overflow-hidden">
+                                                <div className="w-16 h-16 rounded-xl bg-white/[0.05] border border-white/[0.08] flex items-center justify-center overflow-hidden group">
                                                     {product.images?.[0] ? (
-                                                        <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover" />
+                                                        <img 
+                                                            src={product.images[0]} 
+                                                            alt={product.name} 
+                                                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" 
+                                                        />
                                                     ) : (
-                                                        <Package className="w-5 h-5 text-white/20" />
+                                                        <Package className="w-6 h-6 text-white/20" />
                                                     )}
                                                 </div>
                                                 <div>
-                                                    <p className="text-white font-medium">{product.name}</p>
+                                                    <div className="flex items-center gap-2">
+                                                        <p className="text-white font-medium">{product.name}</p>
+                                                        {product.isFeatured && (
+                                                            <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
+                                                        )}
+                                                    </div>
                                                     <p className="text-white/40 text-xs">{product.brand}</p>
+                                                    {product.sku && (
+                                                        <p className="text-white/30 text-xs mt-1">SKU: {product.sku}</p>
+                                                    )}
                                                 </div>
                                             </div>
                                         </td>
@@ -307,6 +345,17 @@ export default function AdminProductsPage() {
                                                     title={product.isActive ? "Deactivate" : "Activate"}
                                                 >
                                                     {product.isActive ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                                </button>
+                                                <button
+                                                    onClick={() => toggleFeaturedMutation.mutate({ id: product.id, isFeatured: product.isFeatured })}
+                                                    className={`p-2 rounded-lg border transition-all ${
+                                                        product.isFeatured 
+                                                            ? 'bg-yellow-400/10 border-yellow-400/20 text-yellow-400' 
+                                                            : 'bg-white/[0.05] border-white/[0.08] text-white/60 hover:text-yellow-400'
+                                                    }`}
+                                                    title={product.isFeatured ? "Remove from Featured" : "Add to Featured"}
+                                                >
+                                                    <Star className={`w-4 h-4 ${product.isFeatured ? 'fill-yellow-400' : ''}`} />
                                                 </button>
                                                 <button
                                                     onClick={() => handleEdit(product)}
@@ -428,6 +477,39 @@ export default function AdminProductsPage() {
                                         </div>
                                     </div>
 
+                                    <div className="grid grid-cols-3 gap-4">
+                                        <div className="space-y-2">
+                                            <label className="text-sm text-white/60">SKU</label>
+                                            <input
+                                                type="text"
+                                                value={formData.sku}
+                                                onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
+                                                className="w-full px-4 py-2 bg-white/[0.03] border border-white/[0.08] rounded-xl text-white outline-none focus:border-cyan-400/50"
+                                                placeholder="PROD-001"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-sm text-white/60">Weight (kg)</label>
+                                            <input
+                                                type="number"
+                                                step="0.01"
+                                                value={formData.weight}
+                                                onChange={(e) => setFormData({ ...formData, weight: e.target.value })}
+                                                className="w-full px-4 py-2 bg-white/[0.03] border border-white/[0.08] rounded-xl text-white outline-none focus:border-cyan-400/50"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-sm text-white/60">Dimensions</label>
+                                            <input
+                                                type="text"
+                                                value={formData.dimensions}
+                                                onChange={(e) => setFormData({ ...formData, dimensions: e.target.value })}
+                                                className="w-full px-4 py-2 bg-white/[0.03] border border-white/[0.08] rounded-xl text-white outline-none focus:border-cyan-400/50"
+                                                placeholder="LxWxH"
+                                            />
+                                        </div>
+                                    </div>
+
                                     <div className="space-y-2">
                                         <label className="text-sm text-white/60">Category</label>
                                         <select
@@ -453,6 +535,33 @@ export default function AdminProductsPage() {
                                             className="w-full px-4 py-2 bg-white/[0.03] border border-white/[0.08] rounded-xl text-white outline-none focus:border-cyan-400/50 resize-none font-mono text-xs"
                                             placeholder='{"key": "value"}'
                                         />
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="flex items-center gap-3 p-3 bg-white/[0.03] border border-white/[0.08] rounded-xl">
+                                            <input
+                                                type="checkbox"
+                                                id="isFeatured"
+                                                checked={formData.isFeatured}
+                                                onChange={(e) => setFormData({ ...formData, isFeatured: e.target.checked })}
+                                                className="w-5 h-5 rounded border-white/20 bg-white/[0.05] text-cyan-400 focus:ring-cyan-400/50"
+                                            />
+                                            <label htmlFor="isFeatured" className="text-sm text-white/80 cursor-pointer">
+                                                Featured Product
+                                            </label>
+                                        </div>
+                                        <div className="flex items-center gap-3 p-3 bg-white/[0.03] border border-white/[0.08] rounded-xl">
+                                            <input
+                                                type="checkbox"
+                                                id="isActive"
+                                                checked={formData.isActive}
+                                                onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                                                className="w-5 h-5 rounded border-white/20 bg-white/[0.05] text-cyan-400 focus:ring-cyan-400/50"
+                                            />
+                                            <label htmlFor="isActive" className="text-sm text-white/80 cursor-pointer">
+                                                Active
+                                            </label>
+                                        </div>
                                     </div>
 
                                     <div className="space-y-2">
