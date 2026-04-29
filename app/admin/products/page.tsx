@@ -26,7 +26,7 @@ export default function AdminProductsPage() {
         brand: "",
         categoryId: "",
         images: [] as string[],
-        specifications: "",
+        specifications: [{ name: "", value: "" }] as Array<{ name: string; value: string }>,
         isFeatured: false,
         isActive: true,
         sku: "",
@@ -34,6 +34,26 @@ export default function AdminProductsPage() {
         dimensions: "",
     });
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const addSpecificationRow = () => {
+        setFormData({
+            ...formData,
+            specifications: [...formData.specifications, { name: "", value: "" }]
+        });
+    };
+
+    const removeSpecificationRow = (index: number) => {
+        setFormData({
+            ...formData,
+            specifications: formData.specifications.filter((_, i) => i !== index)
+        });
+    };
+
+    const updateSpecification = (index: number, field: 'name' | 'value', value: string) => {
+        const newSpecs = [...formData.specifications];
+        newSpecs[index][field] = value;
+        setFormData({ ...formData, specifications: newSpecs });
+    };
 
     const { data, isLoading } = useQuery({
         queryKey: ["admin-products"],
@@ -151,6 +171,15 @@ export default function AdminProductsPage() {
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+        
+        // Convert row-wise specifications to object format for backend
+        const specificationsObj = formData.specifications
+            .filter(spec => spec.name && spec.value)
+            .reduce((acc, spec) => {
+                acc[spec.name] = spec.value;
+                return acc;
+            }, {} as Record<string, string>);
+        
         const productData = {
             ...formData,
             price: parseFloat(formData.price),
@@ -158,6 +187,7 @@ export default function AdminProductsPage() {
             stock: parseInt(formData.stock),
             categoryId: formData.categoryId || null,
             weight: formData.weight ? parseFloat(formData.weight) : null,
+            specifications: specificationsObj,
         };
 
         if (editingProduct) {
@@ -169,6 +199,40 @@ export default function AdminProductsPage() {
 
     const handleEdit = (product: any) => {
         setEditingProduct(product);
+        
+        // Convert specifications to row-wise format
+        let specs = [{ name: "", value: "" }];
+        if (product.specifications) {
+            if (typeof product.specifications === 'string') {
+                try {
+                    const parsed = JSON.parse(product.specifications);
+                    if (Array.isArray(parsed)) {
+                        specs = parsed.map((item: any) => ({
+                            name: item.name || Object.keys(item)[0] || "",
+                            value: item.value || Object.values(item)[0] || ""
+                        }));
+                    } else if (typeof parsed === 'object') {
+                        specs = Object.entries(parsed).map(([key, value]) => ({
+                            name: key,
+                            value: String(value)
+                        }));
+                    }
+                } catch (e) {
+                    specs = [{ name: "", value: "" }];
+                }
+            } else if (Array.isArray(product.specifications)) {
+                specs = product.specifications.map((item: any) => ({
+                    name: item.name || "",
+                    value: item.value || ""
+                }));
+            } else if (typeof product.specifications === 'object') {
+                specs = Object.entries(product.specifications).map(([key, value]) => ({
+                    name: key,
+                    value: String(value)
+                }));
+            }
+        }
+        
         setFormData({
             name: product.name || "",
             description: product.description || "",
@@ -178,7 +242,7 @@ export default function AdminProductsPage() {
             brand: product.brand || "",
             categoryId: product.categoryId || "",
             images: product.images || [],
-            specifications: product.specifications || "",
+            specifications: specs,
             isFeatured: product.isFeatured || false,
             isActive: product.isActive !== undefined ? product.isActive : true,
             sku: product.sku || "",
@@ -206,7 +270,7 @@ export default function AdminProductsPage() {
             brand: "",
             categoryId: "",
             images: [] as string[],
-            specifications: "",
+            specifications: [{ name: "", value: "" }] as Array<{ name: string; value: string }>,
             isFeatured: false,
             isActive: true,
             sku: "",
@@ -489,7 +553,7 @@ export default function AdminProductsPage() {
                                             />
                                         </div>
                                         <div className="space-y-2">
-                                            <label className="text-sm text-white/60">Weight (kg)</label>
+                                            <label className="text-sm text-white/60">Weight (g)</label>
                                             <input
                                                 type="number"
                                                 step="0.01"
@@ -527,14 +591,46 @@ export default function AdminProductsPage() {
                                     </div>
 
                                     <div className="space-y-2">
-                                        <label className="text-sm text-white/60">Specifications (JSON)</label>
-                                        <textarea
-                                            value={formData.specifications}
-                                            onChange={(e) => setFormData({ ...formData, specifications: e.target.value })}
-                                            rows={2}
-                                            className="w-full px-4 py-2 bg-white/[0.03] border border-white/[0.08] rounded-xl text-white outline-none focus:border-cyan-400/50 resize-none font-mono text-xs"
-                                            placeholder='{"key": "value"}'
-                                        />
+                                        <div className="flex items-center justify-between">
+                                            <label className="text-sm text-white/60">Specifications</label>
+                                            <button
+                                                type="button"
+                                                onClick={addSpecificationRow}
+                                                className="text-xs text-cyan-400 hover:text-cyan-300 flex items-center gap-1"
+                                            >
+                                                <Plus className="w-3 h-3" />
+                                                Add Row
+                                            </button>
+                                        </div>
+                                        <div className="space-y-2">
+                                            {formData.specifications.map((spec, index) => (
+                                                <div key={index} className="flex items-center gap-2">
+                                                    <span className="text-xs text-white/40 w-6">{index + 1}.</span>
+                                                    <input
+                                                        type="text"
+                                                        value={spec.name}
+                                                        onChange={(e) => updateSpecification(index, 'name', e.target.value)}
+                                                        placeholder="Name (e.g., RAM)"
+                                                        className="flex-1 px-3 py-2 bg-white/[0.03] border border-white/[0.08] rounded-lg text-white text-xs outline-none focus:border-cyan-400/50"
+                                                    />
+                                                    <input
+                                                        type="text"
+                                                        value={spec.value}
+                                                        onChange={(e) => updateSpecification(index, 'value', e.target.value)}
+                                                        placeholder="Value (e.g., 8GB)"
+                                                        className="flex-1 px-3 py-2 bg-white/[0.03] border border-white/[0.08] rounded-lg text-white text-xs outline-none focus:border-cyan-400/50"
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => removeSpecificationRow(index)}
+                                                        disabled={formData.specifications.length === 1}
+                                                        className="p-2 text-red-400 hover:text-red-300 hover:bg-red-400/10 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                                    >
+                                                        <Trash2 className="w-3 h-3" />
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
                                     </div>
 
                                     <div className="grid grid-cols-2 gap-4">
