@@ -224,10 +224,18 @@ export default function Navbar() {
                                     onClick={() => setUserMenuOpen((v) => !v)}
                                     className="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all duration-200 group"
                                 >
-                                    <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-cyan-400 to-cyan-600 flex items-center justify-center text-[10px] font-bold text-black">
-                                        {user.firstName[0]}
-                                        {user.lastName[0]}
-                                    </div>
+                                    {user.avatar ? (
+                                        <img
+                                            src={user.avatar}
+                                            alt={user.firstName}
+                                            className="w-6 h-6 rounded-lg object-cover"
+                                        />
+                                    ) : (
+                                        <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-cyan-400 to-cyan-600 flex items-center justify-center text-[10px] font-bold text-black">
+                                            {user.firstName[0]}
+                                            {user.lastName[0]}
+                                        </div>
+                                    )}
                                     <span className="text-xs text-white/70 group-hover:text-white hidden sm:block transition-colors">
                                         {user.firstName}
                                     </span>
@@ -248,13 +256,27 @@ export default function Navbar() {
                                             transition={{ duration: 0.15, ease: "easeOut" }}
                                             className="absolute right-0 top-full mt-2 w-52 backdrop-blur-2xl bg-black/80 border border-white/10 rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.6)] overflow-hidden"
                                         >
-                                            <div className="px-4 py-3 border-b border-white/5">
-                                                <p className="text-xs font-semibold text-white">
-                                                    {user.firstName} {user.lastName}
-                                                </p>
-                                                <p className="text-[11px] text-white/40 truncate">
-                                                    {user.email}
-                                                </p>
+                                            <div className="px-4 py-3 border-b border-white/5 flex items-center gap-3">
+                                                {user.avatar ? (
+                                                    <img
+                                                        src={user.avatar}
+                                                        alt={user.firstName}
+                                                        className="w-10 h-10 rounded-lg object-cover"
+                                                    />
+                                                ) : (
+                                                    <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-cyan-400 to-cyan-600 flex items-center justify-center text-sm font-bold text-black">
+                                                        {user.firstName[0]}
+                                                        {user.lastName[0]}
+                                                    </div>
+                                                )}
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-xs font-semibold text-white truncate">
+                                                        {user.firstName} {user.lastName}
+                                                    </p>
+                                                    <p className="text-[11px] text-white/40 truncate">
+                                                        {user.email}
+                                                    </p>
+                                                </div>
                                             </div>
                                             <div className="py-2">
                                                 {isAdmin() && (

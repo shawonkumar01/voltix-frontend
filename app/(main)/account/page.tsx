@@ -1,17 +1,32 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { User, Mail, Calendar, Package, Settings, LogOut, ArrowRight } from "lucide-react";
+import { User, Mail, Calendar, Package, Settings, LogOut, ArrowRight, Edit2, X, Phone, MapPin, Calendar as CalendarIcon } from "lucide-react";
 import { useAuthStore } from "@/stores/auth.store";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ordersApi } from "@/lib/api/orders";
+import { usersApi } from "@/lib/api/users";
+import { toast } from "sonner";
 
 export default function AccountPage() {
     const router = useRouter();
-    const { user, clearAuth, isAdmin } = useAuthStore();
+    const { user, clearAuth, isAdmin, setAuth } = useAuthStore();
+    const queryClient = useQueryClient();
+    const [isEditing, setIsEditing] = useState(false);
+    const [editFormData, setEditFormData] = useState({
+        firstName: "",
+        lastName: "",
+        phone: "",
+        address: "",
+        city: "",
+        state: "",
+        country: "",
+        zipCode: "",
+        dateOfBirth: "",
+    });
 
     // Redirect if not logged in
     useEffect(() => {
@@ -29,11 +44,116 @@ export default function AccountPage() {
         enabled: !!user,
     });
 
+    const { data: profileData } = useQuery({
+        queryKey: ["user-profile"],
+        queryFn: async () => {
+            const res = await usersApi.getProfile();
+            return res.data;
+        },
+        enabled: !!user,
+    });
+
+    const profile = profileData?.user || profileData || user;
+
+    const updateMutation = useMutation({
+        mutationFn: (data: typeof editFormData) => usersApi.updateProfile(data),
+        onSuccess: (res: any) => {
+            const updatedUser = res.data?.user || res.data;
+            if (updatedUser) {
+                setAuth(updatedUser, localStorage.getItem("voltix_token") || "");
+            }
+            queryClient.invalidateQueries({ queryKey: ["user-profile"] });
+            toast.success("Profile updated successfully");
+            setIsEditing(false);
+        },
+        onError: (error: any) => {
+            console.error("Profile update error:", error);
+            toast.error(error.response?.data?.message || "Failed to update profile");
+        },
+    });
+
     const orders = ordersData?.orders || ordersData || [];
 
     const handleLogout = () => {
         clearAuth();
         router.push("/");
+    };
+
+    const handleEdit = () => {
+        setEditFormData({
+            firstName: profile.firstName || "",
+            lastName: profile.lastName || "",
+            phone: profile.phone || "",
+            address: profile.address || "",
+            city: profile.city || "",
+            state: profile.state || "",
+            country: profile.country || "",
+            zipCode: profile.zipCode || "",
+            dateOfBirth: profile.dateOfBirth ? new Date(profile.dateOfBirth).toISOString().split('T')[0] : "",
+        });
+        setIsEditing(true);
+    };
+
+    const handleSave = (e: React.FormEvent) => {
+        e.preventDefault();
+        
+        // Convert date to ISO format for backend
+        const dataToSend = { ...editFormData };
+        if (dataToSend.dateOfBirth) {
+            dataToSend.dateOfBirth = new Date(dataToSend.dateOfBirth).toISOString();
+        }
+        
+        updateMutation.mutate(dataToSend);
+    };
+
+    const formatDate = (dateString: string | Date) => {
+        if (!dateString) return "N/A";
+        const date = new Date(dateString);
+        if (isNaN(date.getTime())) return "N/A";
+        return date.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+    };
+
+    const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+            const token = localStorage.getItem('voltix_token');
+            const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+            const uploadUrl = `${baseUrl}/upload`;
+
+            const res = await fetch(uploadUrl, {
+                method: 'POST',
+                headers: {
+                    'Authorization': token ? `Bearer ${token}` : '',
+                },
+                body: formData,
+            });
+
+            if (!res.ok) {
+                throw new Error('Upload failed');
+            }
+
+            const data = await res.json();
+            const avatarUrl = data.url;
+
+            // Update avatar
+            const updateRes = await usersApi.updateProfile({ avatar: avatarUrl });
+            const updatedUser = updateRes.data?.user || updateRes.data;
+            
+            // Update auth store with new avatar
+            if (updatedUser) {
+                setAuth(updatedUser, localStorage.getItem("voltix_token") || "");
+            }
+            
+            queryClient.invalidateQueries({ queryKey: ["user-profile"] });
+            toast.success("Profile picture updated");
+        } catch (error) {
+            console.error("Avatar upload error:", error);
+            toast.error("Failed to upload profile picture");
+        }
     };
 
     if (!user) {
@@ -71,33 +191,175 @@ export default function AccountPage() {
                     transition={{ delay: 0.1 }}
                     className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-6 mb-6"
                 >
-                    <div className="flex items-center gap-4 mb-6">
-                        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-cyan-400 to-cyan-600 flex items-center justify-center text-2xl font-black text-black">
-                            {user.firstName[0]}
-                            {user.lastName[0]}
+                    <div className="flex items-center justify-between mb-6">
+                        <div className="flex items-center gap-4">
+                            <div className="relative group">
+                                {profile.avatar ? (
+                                    <img
+                                        src={profile.avatar}
+                                        alt={profile.firstName}
+                                        className="w-16 h-16 rounded-2xl object-cover"
+                                    />
+                                ) : (
+                                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-cyan-400 to-cyan-600 flex items-center justify-center text-2xl font-black text-black">
+                                        {profile.firstName[0]}
+                                        {profile.lastName[0]}
+                                    </div>
+                                )}
+                                <label className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                                    <Edit2 className="w-4 h-4 text-white" />
+                                </label>
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={handleAvatarUpload}
+                                    className="hidden"
+                                    id="avatar-upload"
+                                />
+                                <label htmlFor="avatar-upload" className="absolute inset-0 cursor-pointer" />
+                            </div>
+                            <div>
+                                <h2
+                                    className="text-lg font-black text-white"
+                                    style={{ fontFamily: "'Syne', sans-serif" }}
+                                >
+                                    {profile.firstName} {profile.lastName}
+                                </h2>
+                                <p className="text-sm text-white/40">{profile.email}</p>
+                                {profile.role === "admin" && (
+                                    <span className="inline-block mt-1 px-2 py-0.5 bg-cyan-400/10 border border-cyan-400/20 rounded text-[10px] font-bold text-cyan-400 uppercase tracking-widest">
+                                        Admin
+                                    </span>
+                                )}
+                            </div>
                         </div>
-                        <div>
-                            <h2
-                                className="text-lg font-black text-white"
-                                style={{ fontFamily: "'Syne', sans-serif" }}
-                            >
-                                {user.firstName} {user.lastName}
-                            </h2>
-                            <p className="text-sm text-white/40">{user.email}</p>
-                            {user.role === "admin" && (
-                                <span className="inline-block mt-1 px-2 py-0.5 bg-cyan-400/10 border border-cyan-400/20 rounded text-[10px] font-bold text-cyan-400 uppercase tracking-widest">
-                                    Admin
-                                </span>
-                            )}
-                        </div>
+                        <button
+                            onClick={isEditing ? () => setIsEditing(false) : handleEdit}
+                            className="p-2 rounded-lg bg-white/[0.05] border border-white/[0.08] text-white/60 hover:text-white hover:bg-white/[0.10] transition-all"
+                        >
+                            {isEditing ? <X className="w-4 h-4" /> : <Edit2 className="w-4 h-4" />}
+                        </button>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <InfoItem icon={User} label="Name" value={`${user.firstName} ${user.lastName}`} />
-                        <InfoItem icon={Mail} label="Email" value={user.email} />
-                        <InfoItem icon={Calendar} label="Member Since" value="January 2026" />
-                        <InfoItem icon={Package} label="Total Orders" value={`${orders.length} orders`} />
-                    </div>
+                    {isEditing ? (
+                        <form onSubmit={handleSave} className="space-y-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <label className="text-xs text-white/40 uppercase tracking-widest">First Name</label>
+                                    <input
+                                        type="text"
+                                        value={editFormData.firstName}
+                                        onChange={(e) => setEditFormData({ ...editFormData, firstName: e.target.value })}
+                                        className="w-full px-4 py-2 bg-white/[0.03] border border-white/[0.08] rounded-xl text-white outline-none focus:border-cyan-400/50"
+                                        required
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-xs text-white/40 uppercase tracking-widest">Last Name</label>
+                                    <input
+                                        type="text"
+                                        value={editFormData.lastName}
+                                        onChange={(e) => setEditFormData({ ...editFormData, lastName: e.target.value })}
+                                        className="w-full px-4 py-2 bg-white/[0.03] border border-white/[0.08] rounded-xl text-white outline-none focus:border-cyan-400/50"
+                                        required
+                                    />
+                                </div>
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-xs text-white/40 uppercase tracking-widest">Phone</label>
+                                <input
+                                    type="tel"
+                                    value={editFormData.phone}
+                                    onChange={(e) => setEditFormData({ ...editFormData, phone: e.target.value })}
+                                    className="w-full px-4 py-2 bg-white/[0.03] border border-white/[0.08] rounded-xl text-white outline-none focus:border-cyan-400/50"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-xs text-white/40 uppercase tracking-widest">Address</label>
+                                <input
+                                    type="text"
+                                    value={editFormData.address}
+                                    onChange={(e) => setEditFormData({ ...editFormData, address: e.target.value })}
+                                    className="w-full px-4 py-2 bg-white/[0.03] border border-white/[0.08] rounded-xl text-white outline-none focus:border-cyan-400/50"
+                                />
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <label className="text-xs text-white/40 uppercase tracking-widest">City</label>
+                                    <input
+                                        type="text"
+                                        value={editFormData.city}
+                                        onChange={(e) => setEditFormData({ ...editFormData, city: e.target.value })}
+                                        className="w-full px-4 py-2 bg-white/[0.03] border border-white/[0.08] rounded-xl text-white outline-none focus:border-cyan-400/50"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-xs text-white/40 uppercase tracking-widest">State</label>
+                                    <input
+                                        type="text"
+                                        value={editFormData.state}
+                                        onChange={(e) => setEditFormData({ ...editFormData, state: e.target.value })}
+                                        className="w-full px-4 py-2 bg-white/[0.03] border border-white/[0.08] rounded-xl text-white outline-none focus:border-cyan-400/50"
+                                    />
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <label className="text-xs text-white/40 uppercase tracking-widest">Country</label>
+                                    <input
+                                        type="text"
+                                        value={editFormData.country}
+                                        onChange={(e) => setEditFormData({ ...editFormData, country: e.target.value })}
+                                        className="w-full px-4 py-2 bg-white/[0.03] border border-white/[0.08] rounded-xl text-white outline-none focus:border-cyan-400/50"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-xs text-white/40 uppercase tracking-widest">Zip Code</label>
+                                    <input
+                                        type="text"
+                                        value={editFormData.zipCode}
+                                        onChange={(e) => setEditFormData({ ...editFormData, zipCode: e.target.value })}
+                                        className="w-full px-4 py-2 bg-white/[0.03] border border-white/[0.08] rounded-xl text-white outline-none focus:border-cyan-400/50"
+                                    />
+                                </div>
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-xs text-white/40 uppercase tracking-widest">Date of Birth</label>
+                                <input
+                                    type="date"
+                                    value={editFormData.dateOfBirth}
+                                    onChange={(e) => setEditFormData({ ...editFormData, dateOfBirth: e.target.value })}
+                                    className="w-full px-4 py-2 bg-white/[0.03] border border-white/[0.08] rounded-xl text-white outline-none focus:border-cyan-400/50"
+                                />
+                            </div>
+                            <div className="flex gap-3 pt-2">
+                                <button
+                                    type="submit"
+                                    disabled={updateMutation.isPending}
+                                    className="flex-1 px-4 py-2 bg-cyan-400 text-black text-sm font-bold rounded-xl hover:bg-cyan-300 transition-all disabled:opacity-50"
+                                >
+                                    {updateMutation.isPending ? "Saving..." : "Save Changes"}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setIsEditing(false)}
+                                    className="px-4 py-2 bg-white/[0.05] border border-white/[0.08] text-white text-sm font-medium rounded-xl hover:bg-white/[0.10] transition-all"
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        </form>
+                    ) : (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <InfoItem icon={User} label="Name" value={`${profile.firstName} ${profile.lastName}`} />
+                            <InfoItem icon={Mail} label="Email" value={profile.email} />
+                            <InfoItem icon={Calendar} label="Member Since" value={formatDate(profile.createdAt)} />
+                            <InfoItem icon={Package} label="Total Orders" value={`${orders.length} orders`} />
+                            {profile.phone && <InfoItem icon={Phone} label="Phone" value={profile.phone} />}
+                            {profile.address && <InfoItem icon={MapPin} label="Address" value={`${profile.address}, ${profile.city || ''} ${profile.state || ''} ${profile.zipCode || ''}`} />}
+                            {profile.dateOfBirth && <InfoItem icon={CalendarIcon} label="Date of Birth" value={formatDate(profile.dateOfBirth)} />}
+                        </div>
+                    )}
                 </motion.div>
 
                 {/* Quick Actions */}
