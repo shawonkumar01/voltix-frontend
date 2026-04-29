@@ -15,6 +15,7 @@ import { useAuthStore } from "@/stores/auth.store";
 const navItems = [
     { href: "/admin", icon: LayoutDashboard, label: "Dashboard" },
     { href: "/admin/products", icon: Package, label: "Products" },
+    { href: "/admin/brands", icon: Zap, label: "Brands" },
     { href: "/admin/orders", icon: ShoppingCart, label: "Orders" },
     { href: "/admin/users", icon: Users, label: "Users" },
     { href: "/admin/categories", icon: FolderTree, label: "Categories" },

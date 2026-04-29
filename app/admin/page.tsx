@@ -191,6 +191,7 @@ export default function AdminDashboard() {
                         <h3 className="text-lg font-bold text-white mb-4">Quick Actions</h3>
                         <div className="space-y-2">
                             <QuickLink href="/admin/products/new" icon={Package} label="Add Product" color="cyan" />
+                            <QuickLink href="/admin/brands" icon={Zap} label="Manage Brands" color="amber" />
                             <QuickLink href="/admin/orders" icon={ShoppingCart} label="View Orders" color="emerald" />
                             <QuickLink href="/admin/users" icon={Users} label="Manage Users" color="violet" />
                         </div>
@@ -263,6 +264,7 @@ function QuickLink({ href, icon: Icon, label, color }: { href: string; icon: Rea
         cyan: "hover:bg-cyan-400/10 hover:border-cyan-400/30",
         emerald: "hover:bg-emerald-400/10 hover:border-emerald-400/30",
         violet: "hover:bg-violet-400/10 hover:border-violet-400/30",
+        amber: "hover:bg-amber-400/10 hover:border-amber-400/30",
     };
 
     return (

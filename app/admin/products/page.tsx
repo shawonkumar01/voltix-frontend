@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { adminApi } from "@/lib/api/admin";
+import { brandsApi } from "@/lib/api/brands";
 import api from "@/lib/api/client";
 import { env } from "@/lib/validation";
 
@@ -23,7 +24,7 @@ export default function AdminProductsPage() {
         price: "",
         discount: "0",
         stock: "",
-        brand: "",
+        brandId: "",
         categoryId: "",
         images: [] as string[],
         specifications: [{ name: "", value: "" }] as Array<{ name: string; value: string }>,
@@ -69,6 +70,14 @@ export default function AdminProductsPage() {
         queryKey: ["admin-categories"],
         queryFn: async () => {
             const res = await adminApi.getCategories();
+            return res.data;
+        },
+    });
+
+    const { data: brandsData } = useQuery({
+        queryKey: ["admin-brands"],
+        queryFn: async () => {
+            const res = await brandsApi.getAll();
             return res.data;
         },
     });
@@ -239,7 +248,7 @@ export default function AdminProductsPage() {
             price: product.price?.toString() || "",
             discount: product.discount?.toString() || "0",
             stock: product.stock?.toString() || "",
-            brand: product.brand || "",
+            brandId: product.brandId || product.brand?.id || "",
             categoryId: product.categoryId || "",
             images: product.images || [],
             specifications: specs,
@@ -267,7 +276,7 @@ export default function AdminProductsPage() {
             price: "",
             discount: "0",
             stock: "",
-            brand: "",
+            brandId: "",
             categoryId: "",
             images: [] as string[],
             specifications: [{ name: "", value: "" }] as Array<{ name: string; value: string }>,
@@ -489,12 +498,18 @@ export default function AdminProductsPage() {
                                         </div>
                                         <div className="space-y-2">
                                             <label className="text-sm text-white/60">Brand</label>
-                                            <input
-                                                type="text"
-                                                value={formData.brand}
-                                                onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
+                                            <select
+                                                value={formData.brandId}
+                                                onChange={(e) => setFormData({ ...formData, brandId: e.target.value })}
                                                 className="w-full px-4 py-2 bg-white/[0.03] border border-white/[0.08] rounded-xl text-white outline-none focus:border-cyan-400/50"
-                                            />
+                                            >
+                                                <option value="" className="bg-[#111]">Select Brand</option>
+                                                {brandsData?.map((brand: any) => (
+                                                    <option key={brand.id} value={brand.id} className="bg-[#111]">
+                                                        {brand.name}
+                                                    </option>
+                                                ))}
+                                            </select>
                                         </div>
                                     </div>
 
