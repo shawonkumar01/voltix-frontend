@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
@@ -15,13 +15,20 @@ export default function WishlistPage() {
     const { user } = useAuthStore();
     const queryClient = useQueryClient();
     const { removeItem: removeFromWishlistStore, clearWishlist, syncFromAPI } = useWishlistStore();
+    const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
-    // Only redirect if user is not authenticated
+    // Only redirect if user is not authenticated (after hydration check)
     useEffect(() => {
-        if (user === null) {
-            toast.error("Please sign in to view your wishlist");
-            router.push("/login");
-        }
+        // Wait a bit for auth store to hydrate from localStorage
+        const timer = setTimeout(() => {
+            setIsCheckingAuth(false);
+            if (user === null) {
+                toast.error("Please sign in to view your wishlist");
+                router.push("/login");
+            }
+        }, 100);
+
+        return () => clearTimeout(timer);
     }, [user, router]);
 
     const { data, isLoading, isError } = useQuery({
@@ -30,7 +37,7 @@ export default function WishlistPage() {
             const res = await wishlistApi.get();
             return res.data;
         },
-        enabled: !!user,
+        enabled: !!user && !isCheckingAuth,
         staleTime: 0, // Always consider data stale
         refetchOnWindowFocus: true, // Refetch when window gains focus
         refetchOnMount: true, // Always refetch when component mounts
@@ -65,6 +72,20 @@ export default function WishlistPage() {
         },
         onError: () => toast.error("Failed to clear wishlist"),
     });
+
+    // Loading state while checking auth
+    if (isCheckingAuth) {
+        return (
+            <div className="min-h-screen bg-[#080808] flex items-center justify-center">
+                <div className="flex flex-col items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-cyan-400/10 border border-cyan-400/20 flex items-center justify-center">
+                        <Loader2 className="w-5 h-5 text-cyan-400 animate-spin" />
+                    </div>
+                    <p className="text-xs text-white/30">Loading...</p>
+                </div>
+            </div>
+        );
+    }
 
     // Loading state
     if (isLoading) {
