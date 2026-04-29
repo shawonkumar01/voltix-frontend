@@ -14,7 +14,7 @@ export default function WishlistPage() {
     const router = useRouter();
     const { user } = useAuthStore();
     const queryClient = useQueryClient();
-    const { removeItem: removeFromWishlistStore, clearWishlist } = useWishlistStore();
+    const { removeItem: removeFromWishlistStore, clearWishlist, syncFromAPI } = useWishlistStore();
 
     // Only redirect if user is not authenticated
     useEffect(() => {
@@ -35,6 +35,14 @@ export default function WishlistPage() {
         refetchOnWindowFocus: true, // Refetch when window gains focus
         refetchOnMount: true, // Always refetch when component mounts
     });
+
+    // Sync API data to store when data changes
+    useEffect(() => {
+        if (data) {
+            const items = data?.data || data?.items || data?.wishlist?.items || [];
+            syncFromAPI({ items });
+        }
+    }, [data, syncFromAPI]);
 
     const items = data?.data || data?.items || data?.wishlist?.items || [];
 

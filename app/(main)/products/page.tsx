@@ -7,8 +7,11 @@ import { motion, AnimatePresence } from "framer-motion";
 import { SlidersHorizontal, X, Search, Grid3X3, List, ChevronDown } from "lucide-react";
 import { productsApi } from "@/lib/api/products";
 import { categoriesApi } from "@/lib/api/categories";
+import { wishlistApi } from "@/lib/api/wishlist";
 import ProductGrid from "@/components/products/ProductGrid";
 import FiltersSidebar from "@/components/products/FiltersSidebar";
+import { useAuthStore } from "@/stores/auth.store";
+import { useWishlistStore } from "@/stores/wishlist.store";
 
 export type SortOption = "newest" | "price_low" | "price_high" | "rating" | "name" | "best_selling";
 
@@ -32,6 +35,20 @@ export default function ProductsPage() {
     const queryClient = useQueryClient();
     const [filtersOpen, setFiltersOpen] = useState(false);
     const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+    const { user } = useAuthStore();
+    const { syncFromAPI } = useWishlistStore();
+
+    // Load wishlist from API when user is logged in
+    useEffect(() => {
+        if (user) {
+            wishlistApi.get().then(res => {
+                const items = res.data?.data || res.data?.items || res.data?.wishlist?.items || [];
+                syncFromAPI({ items });
+            }).catch(() => {
+                // Silently fail - wishlist might be empty or API error
+            });
+        }
+    }, [user, syncFromAPI]);
 
     const getFilters = useCallback((): Filters => ({
         search: searchParams.get("search") || "",

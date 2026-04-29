@@ -73,8 +73,6 @@ export const useWishlistStore = create<WishlistStore>()(
         {
             name: "voltix_wishlist",
             storage: createJSONStorage(() => localStorage),
-            // Don't rehydrate wishlist data - always get fresh from API
-            skipHydration: true,
         }
     )
 );

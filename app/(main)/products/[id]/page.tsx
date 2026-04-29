@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
@@ -17,6 +17,7 @@ import { cartApi } from "@/lib/api/cart";
 import { wishlistApi } from "@/lib/api/wishlist";
 import { useAuthStore } from "@/stores/auth.store";
 import { useCartStore } from "@/stores/cart.store";
+import { useWishlistStore } from "@/stores/wishlist.store";
 import { formatPrice, toNumber } from "@/lib/utils/format";
 import ReviewsSection from "@/components/products/ReviewsSection";
 import RelatedProducts from "@/components/products/RelatedProducts";
@@ -28,6 +29,7 @@ export default function ProductDetailPage() {
     const router = useRouter();
     const { user } = useAuthStore();
     const increment = useCartStore((s) => s.increment);
+    const { isInWishlist, addItem: addToWishlistStore, removeItem: removeFromWishlistStore } = useWishlistStore();
 
     const [activeImage, setActiveImage] = useState(0);
     const [quantity, setQuantity] = useState(1);
@@ -35,6 +37,13 @@ export default function ProductDetailPage() {
     const [wishlisted, setWishlisted] = useState(false);
     const [addedSuccess, setAddedSuccess] = useState(false);
     const [activeTab, setActiveTab] = useState<"specs" | "reviews">("specs");
+
+    // Check if product is in wishlist
+    useEffect(() => {
+        if (id) {
+            setWishlisted(isInWishlist(id));
+        }
+    }, [id, isInWishlist]);
 
     const { data, isLoading, isError } = useQuery({
         queryKey: ["product", id],
@@ -73,10 +82,16 @@ export default function ProductDetailPage() {
             if (wishlisted) {
                 await wishlistApi.removeByProduct(product.id);
                 setWishlisted(false);
+                removeFromWishlistStore(product.id);
                 toast.success("Removed from wishlist");
             } else {
                 await wishlistApi.add(product.id);
                 setWishlisted(true);
+                addToWishlistStore({
+                    id: product.id,
+                    product: product,
+                    createdAt: new Date().toISOString()
+                });
                 toast.success("Saved to wishlist ♥");
             }
         } catch {
