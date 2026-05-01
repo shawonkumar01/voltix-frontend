@@ -26,7 +26,7 @@ export const ProductSchema = z.object({
     id: z.string(),
     name: z.string(),
   }).optional(),
-  specifications: z.record(z.unknown()).optional(),
+  specifications: z.record(z.string(), z.unknown()).optional(),
   sku: z.string().optional(),
   model: z.string().optional(),
   warranty: z.string().optional(),
@@ -78,7 +78,7 @@ export const OrderSchema = z.object({
   total: z.number(),
   items: z.array(CartItemSchema),
   createdAt: z.string(),
-  shippingAddress: z.record(z.unknown()).optional(),
+  shippingAddress: z.record(z.string(), z.unknown()).optional(),
 });
 
 export type Order = z.infer<typeof OrderSchema>;
