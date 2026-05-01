@@ -210,8 +210,8 @@ export default function AccountPage() {
                                     />
                                 ) : (
                                     <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-cyan-400 to-cyan-600 flex items-center justify-center text-2xl font-black text-black">
-                                        {profile.firstName[0]}
-                                        {profile.lastName[0]}
+                                        {profile.firstName?.[0] || "U"}
+                                        {profile.lastName?.[0] || ""}
                                     </div>
                                 )}
                                 <label className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">

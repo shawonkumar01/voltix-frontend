@@ -232,8 +232,8 @@ export default function Navbar() {
                                         />
                                     ) : (
                                         <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-cyan-400 to-cyan-600 flex items-center justify-center text-[10px] font-bold text-black">
-                                            {user.firstName[0]}
-                                            {user.lastName[0]}
+                                            {user.firstName?.[0] || "U"}
+                                            {user.lastName?.[0] || ""}
                                         </div>
                                     )}
                                     <span className="text-xs text-white/70 group-hover:text-white hidden sm:block transition-colors">
@@ -265,13 +265,13 @@ export default function Navbar() {
                                                     />
                                                 ) : (
                                                     <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-cyan-400 to-cyan-600 flex items-center justify-center text-sm font-bold text-black">
-                                                        {user.firstName[0]}
-                                                        {user.lastName[0]}
+                                                        {user.firstName?.[0] || "U"}
+                                                        {user.lastName?.[0] || ""}
                                                     </div>
                                                 )}
                                                 <div className="flex-1 min-w-0">
                                                     <p className="text-xs font-semibold text-white truncate">
-                                                        {user.firstName} {user.lastName}
+                                                        {user.firstName ? user.firstName : ""} {user.lastName ? user.lastName : ""}
                                                     </p>
                                                     <p className="text-[11px] text-white/40 truncate">
                                                         {user.email}
