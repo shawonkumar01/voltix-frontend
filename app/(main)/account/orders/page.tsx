@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
@@ -13,14 +13,22 @@ import { ordersApi } from "@/lib/api/orders";
 export default function OrdersPage() {
     const router = useRouter();
     const { user } = useAuthStore();
+    const [isHydrated, setIsHydrated] = useState(false);
 
-    // Redirect if not logged in
+    // Wait for store to hydrate from localStorage
     useEffect(() => {
+        const timeout = setTimeout(() => setIsHydrated(true), 100);
+        return () => clearTimeout(timeout);
+    }, []);
+
+    // Redirect if not logged in (only after hydration)
+    useEffect(() => {
+        if (!isHydrated) return;
         if (!user) {
             toast.error("Please sign in to view your orders");
             router.push("/login");
         }
-    }, [user, router]);
+    }, [user, router, isHydrated]);
 
     const { data, isLoading, isError } = useQuery({
         queryKey: ["orders"],
@@ -32,6 +40,20 @@ export default function OrdersPage() {
     });
 
     const orders = data?.orders || data || [];
+
+    // Show loading while hydrating
+    if (!isHydrated) {
+        return (
+            <div className="min-h-screen bg-[#080808] flex items-center justify-center">
+                <div className="flex flex-col items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-cyan-400/10 border border-cyan-400/20 flex items-center justify-center">
+                        <Loader2 className="w-5 h-5 text-cyan-400 animate-spin" />
+                    </div>
+                    <p className="text-xs text-white/30">Loading...</p>
+                </div>
+            </div>
+        );
+    }
 
     if (isLoading) {
         return (

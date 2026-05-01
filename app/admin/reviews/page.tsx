@@ -7,11 +7,11 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import {
     Star, ArrowLeft, Loader2, Search, Trash2, ThumbsUp,
-    MessageSquare, User, Package
+    MessageSquare, User, Package, Sparkles
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuthStore } from "@/stores/auth.store";
-import { adminApi } from "@/lib/api/admin";
+import { reviewsApi } from "@/lib/api/reviews";
 
 export default function AdminReviewsPage() {
     const router = useRouter();
@@ -32,19 +32,28 @@ export default function AdminReviewsPage() {
     const { data, isLoading } = useQuery({
         queryKey: ["admin-reviews"],
         queryFn: async () => {
-            const res = await adminApi.getReviews();
+            const res = await reviewsApi.getAll();
             return res.data;
         },
         enabled: isAdmin(),
     });
 
     const deleteMutation = useMutation({
-        mutationFn: adminApi.deleteReview,
+        mutationFn: reviewsApi.adminDelete,
         onSuccess: () => {
             toast.success("Review deleted");
             queryClient.invalidateQueries({ queryKey: ["admin-reviews"] });
         },
         onError: () => toast.error("Failed to delete review"),
+    });
+
+    const toggleFeaturedMutation = useMutation({
+        mutationFn: reviewsApi.toggleFeatured,
+        onSuccess: (res: any) => {
+            toast.success(res.data?.message || "Review featured status updated");
+            queryClient.invalidateQueries({ queryKey: ["admin-reviews"] });
+        },
+        onError: () => toast.error("Failed to toggle featured status"),
     });
 
     const reviews = Array.isArray(data?.reviews) ? data.reviews : Array.isArray(data) ? data : [];
@@ -148,15 +157,34 @@ export default function AdminReviewsPage() {
                                             {review.helpfulCount || 0} helpful
                                         </span>
                                         <span>{new Date(review.createdAt).toLocaleDateString()}</span>
+                                        {review.isFeatured && (
+                                            <span className="flex items-center gap-1 text-amber-400">
+                                                <Sparkles className="w-3.5 h-3.5" />
+                                                Featured on Homepage
+                                            </span>
+                                        )}
                                     </div>
                                 </div>
-                                <button
-                                    onClick={() => deleteMutation.mutate(review.id)}
-                                    className="p-2 rounded-lg bg-white/[0.05] border border-white/[0.08] text-white/60 hover:text-red-400 hover:bg-red-400/10 transition-all"
-                                    title="Delete Review"
-                                >
-                                    <Trash2 className="w-4 h-4" />
-                                </button>
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        onClick={() => toggleFeaturedMutation.mutate(review.id)}
+                                        className={`p-2 rounded-lg border transition-all ${
+                                            review.isFeatured
+                                                ? "bg-amber-400/10 border-amber-400/30 text-amber-400 hover:bg-amber-400/20"
+                                                : "bg-white/[0.05] border-white/[0.08] text-white/60 hover:text-amber-400 hover:bg-amber-400/10"
+                                        }`}
+                                        title={review.isFeatured ? "Remove from featured" : "Add to featured"}
+                                    >
+                                        <Sparkles className="w-4 h-4" />
+                                    </button>
+                                    <button
+                                        onClick={() => deleteMutation.mutate(review.id)}
+                                        className="p-2 rounded-lg bg-white/[0.05] border border-white/[0.08] text-white/60 hover:text-red-400 hover:bg-red-400/10 transition-all"
+                                        title="Delete Review"
+                                    >
+                                        <Trash2 className="w-4 h-4" />
+                                    </button>
+                                </div>
                             </div>
                         </motion.div>
                     ))}

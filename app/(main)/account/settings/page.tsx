@@ -34,14 +34,22 @@ export default function SettingsPage() {
     const { user, setAuth } = useAuthStore();
     const [activeTab, setActiveTab] = useState<"profile" | "security">("profile");
     const [isSaving, setIsSaving] = useState(false);
+    const [isHydrated, setIsHydrated] = useState(false);
 
-    // Redirect if not logged in
+    // Wait for store to hydrate from localStorage
     useEffect(() => {
+        const timeout = setTimeout(() => setIsHydrated(true), 100);
+        return () => clearTimeout(timeout);
+    }, []);
+
+    // Redirect if not logged in (only after hydration)
+    useEffect(() => {
+        if (!isHydrated) return;
         if (!user) {
             toast.error("Please sign in to access settings");
             router.push("/login");
         }
-    }, [user, router]);
+    }, [user, router, isHydrated]);
 
     const {
         register: registerProfile,
@@ -101,6 +109,20 @@ export default function SettingsPage() {
             setIsSaving(false);
         }
     };
+
+    // Show loading while hydrating
+    if (!isHydrated) {
+        return (
+            <div className="min-h-screen bg-[#080808] flex items-center justify-center">
+                <div className="flex flex-col items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-cyan-400/10 border border-cyan-400/20 flex items-center justify-center">
+                        <Loader2 className="w-5 h-5 text-cyan-400 animate-spin" />
+                    </div>
+                    <p className="text-xs text-white/30">Loading...</p>
+                </div>
+            </div>
+        );
+    }
 
     if (!user) {
         return null;

@@ -5,18 +5,18 @@ import FAQSection from "@/components/homepage/FAQSection";
 import FeaturedBrands from "@/components/homepage/FeaturedBrands";
 import Testimonials from "@/components/homepage/Testimonials";
 import NewsletterSignup from "@/components/homepage/NewsletterSignup";
-import SpecialOffersBanner from "@/components/homepage/SpecialOffersBanner";
-import ProductComparisonTool from "@/components/homepage/ProductComparisonTool";
+// import SpecialOffersBanner from "@/components/homepage/SpecialOffersBanner";
+// import ProductComparisonTool from "@/components/homepage/ProductComparisonTool";
 
 export default function HomePage() {
     return (
         <div className="bg-[#080808]">
             <HeroSection />
-            <SpecialOffersBanner />
+            {/* <SpecialOffersBanner /> */}
             <CategoriesStrip />
             <FeaturedProducts />
             <FeaturedBrands />
-            <ProductComparisonTool />
+            {/* <ProductComparisonTool /> */}
             <Testimonials />
             <NewsletterSignup />
             <FAQSection />

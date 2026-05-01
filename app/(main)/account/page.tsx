@@ -16,6 +16,7 @@ export default function AccountPage() {
     const { user, clearAuth, isAdmin, setAuth } = useAuthStore();
     const queryClient = useQueryClient();
     const [isEditing, setIsEditing] = useState(false);
+    const [isHydrated, setIsHydrated] = useState(false);
     const [editFormData, setEditFormData] = useState({
         firstName: "",
         lastName: "",
@@ -28,12 +29,19 @@ export default function AccountPage() {
         dateOfBirth: "",
     });
 
-    // Redirect if not logged in
+    // Wait for store to hydrate from localStorage
     useEffect(() => {
+        const timeout = setTimeout(() => setIsHydrated(true), 100);
+        return () => clearTimeout(timeout);
+    }, []);
+
+    // Redirect if not logged in (only after hydration)
+    useEffect(() => {
+        if (!isHydrated) return;
         if (!user) {
             router.push("/login");
         }
-    }, [user, router]);
+    }, [user, router, isHydrated]);
 
     const { data: ordersData } = useQuery({
         queryKey: ["orders"],

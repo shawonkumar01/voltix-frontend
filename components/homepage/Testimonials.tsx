@@ -2,71 +2,66 @@
 
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Star, Quote, ChevronLeft, ChevronRight } from "lucide-react";
-
-const testimonials = [
-    {
-        id: 1,
-        name: "Sarah Johnson",
-        avatar: "/avatars/sarah.jpg",
-        rating: 5,
-        title: "Tech Enthusiast",
-        content: "Voltix has been my go-to store for all things tech. Their customer service is exceptional, and the product quality is always top-notch. Fast shipping and great prices!",
-        product: "MacBook Pro 14\"",
-        date: "2 weeks ago"
-    },
-    {
-        id: 2,
-        name: "Michael Chen",
-        avatar: "/avatars/michael.jpg",
-        rating: 5,
-        title: "Professional Photographer",
-        content: "I bought my camera gear from Voltix and couldn't be happier. The team helped me choose the perfect setup, and their after-sales support is amazing. Highly recommend!",
-        product: "Sony A7R V",
-        date: "1 month ago"
-    },
-    {
-        id: 3,
-        name: "Emily Rodriguez",
-        avatar: "/avatars/emily.jpg",
-        rating: 5,
-        title: "Software Developer",
-        content: "Best online shopping experience I've had. The website is easy to navigate, prices are competitive, and delivery was faster than expected. Will definitely shop again.",
-        product: "Dell XPS 15",
-        date: "3 weeks ago"
-    },
-    {
-        id: 4,
-        name: "David Kim",
-        avatar: "/avatars/david.jpg",
-        rating: 5,
-        title: "Gaming Enthusiast",
-        content: "Amazing selection of gaming gear! Found exactly what I was looking for at a great price. The product arrived in perfect condition and works flawlessly.",
-        product: "ASUS ROG Strix",
-        date: "2 months ago"
-    },
-    {
-        id: 5,
-        name: "Lisa Thompson",
-        avatar: "/avatars/lisa.jpg",
-        rating: 5,
-        title: "Digital Artist",
-        content: "Voltix understands creative professionals' needs. Their tablet recommendations were spot-on, and the customer service team really knows their products.",
-        product: "iPad Pro 12.9\"",
-        date: "1 week ago"
-    }
-];
+import { Star, Quote, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { reviewsApi } from "@/lib/api/reviews";
 
 export default function Testimonials() {
     const [currentIndex, setCurrentIndex] = useState(0);
     const [isAutoPlaying, setIsAutoPlaying] = useState(true);
 
+    const { data: featuredReviews, isLoading } = useQuery({
+        queryKey: ["featured-reviews"],
+        queryFn: async () => {
+            const res = await reviewsApi.getFeatured();
+            return res.data;
+        },
+    });
+
+    const testimonials = featuredReviews || [];
+
+    // Default testimonials if no featured reviews
+    const defaultTestimonials = [
+        {
+            id: "1",
+            user: { firstName: "Sarah", lastName: "Johnson" },
+            rating: 5,
+            title: "Tech Enthusiast",
+            comment: "Voltix has been my go-to store for all things tech. Their customer service is exceptional, and the product quality is always top-notch. Fast shipping and great prices!",
+            product: { name: "MacBook Pro 14\"" },
+            createdAt: new Date().toISOString(),
+            isVerifiedPurchase: true,
+        },
+        {
+            id: "2",
+            user: { firstName: "Michael", lastName: "Chen" },
+            rating: 5,
+            title: "Professional Photographer",
+            comment: "I bought my camera gear from Voltix and couldn't be happier. The team helped me choose the perfect setup, and their after-sales support is amazing. Highly recommend!",
+            product: { name: "Sony A7R V" },
+            createdAt: new Date().toISOString(),
+            isVerifiedPurchase: true,
+        },
+        {
+            id: "3",
+            user: { firstName: "Emily", lastName: "Rodriguez" },
+            rating: 5,
+            title: "Software Developer",
+            comment: "Best online shopping experience I've had. The website is easy to navigate, prices are competitive, and delivery was faster than expected. Will definitely shop again.",
+            product: { name: "Dell XPS 15" },
+            createdAt: new Date().toISOString(),
+            isVerifiedPurchase: true,
+        },
+    ];
+
+    const displayTestimonials = testimonials.length > 0 ? testimonials : defaultTestimonials;
+
     const nextTestimonial = () => {
-        setCurrentIndex((prev) => (prev + 1) % testimonials.length);
+        setCurrentIndex((prev) => (prev + 1) % displayTestimonials.length);
     };
 
     const prevTestimonial = () => {
-        setCurrentIndex((prev) => (prev - 1 + testimonials.length) % testimonials.length);
+        setCurrentIndex((prev) => (prev - 1 + displayTestimonials.length) % displayTestimonials.length);
     };
 
     const goToTestimonial = (index: number) => {
@@ -75,13 +70,24 @@ export default function Testimonials() {
 
     // Auto-play functionality
     React.useEffect(() => {
-        if (!isAutoPlaying) return;
+        if (!isAutoPlaying || displayTestimonials.length === 0) return;
         
         const interval = setInterval(nextTestimonial, 5000);
         return () => clearInterval(interval);
-    }, [isAutoPlaying]);
+    }, [isAutoPlaying, displayTestimonials.length]);
 
-    const currentTestimonial = testimonials[currentIndex];
+    if (isLoading) {
+        return (
+            <section className="bg-[#080808] py-20 relative overflow-hidden">
+                <div className="max-w-6xl mx-auto px-4 sm:px-6 flex items-center justify-center">
+                    <Loader2 className="w-8 h-8 text-cyan-400 animate-spin" />
+                </div>
+            </section>
+        );
+    }
+
+    const currentTestimonial = displayTestimonials[currentIndex];
+    if (!currentTestimonial) return null;
 
     return (
         <section className="bg-[#080808] py-20 relative overflow-hidden">
@@ -147,27 +153,31 @@ export default function Testimonials() {
 
                                         {/* Review Text */}
                                         <blockquote className="text-lg text-white/70 leading-relaxed">
-                                            "{currentTestimonial.content}"
+                                            "{currentTestimonial.comment}"
                                         </blockquote>
 
                                         {/* Author Info */}
                                         <div className="flex items-center gap-4">
                                             <div className="w-12 h-12 rounded-full bg-gradient-to-br from-cyan-400/20 to-cyan-400/5 flex items-center justify-center">
                                                 <span className="text-lg font-bold text-cyan-400">
-                                                    {currentTestimonial.name.charAt(0)}
+                                                    {currentTestimonial.user?.firstName?.charAt(0) || "U"}
                                                 </span>
                                             </div>
                                             <div>
-                                                <div className="font-semibold text-white">{currentTestimonial.name}</div>
-                                                <div className="text-sm text-white/40">{currentTestimonial.title}</div>
+                                                <div className="font-semibold text-white">
+                                                    {currentTestimonial.user?.firstName} {currentTestimonial.user?.lastName}
+                                                </div>
+                                                {currentTestimonial.isVerifiedPurchase && (
+                                                    <div className="text-sm text-cyan-400">Verified Purchase</div>
+                                                )}
                                             </div>
                                         </div>
 
                                         {/* Product & Date */}
                                         <div className="flex items-center gap-4 text-sm text-white/30">
-                                            <span>Purchased: {currentTestimonial.product}</span>
+                                            <span>Purchased: {currentTestimonial.product?.name || "Unknown Product"}</span>
                                             <span>•</span>
-                                            <span>{currentTestimonial.date}</span>
+                                            <span>{new Date(currentTestimonial.createdAt).toLocaleDateString()}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -196,7 +206,7 @@ export default function Testimonials() {
 
                 {/* Dots Indicator */}
                 <div className="flex items-center justify-center gap-2 mt-8">
-                    {testimonials.map((_, index) => (
+                    {displayTestimonials.map((_: any, index: number) => (
                         <button
                             key={index}
                             onClick={() => goToTestimonial(index)}
