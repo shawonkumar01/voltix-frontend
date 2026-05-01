@@ -32,7 +32,8 @@ export default function OAuthCallbackPage() {
                 .then((data) => {
                     if (data.user) {
                         setAuth(data.user, token);
-                        toast.success(`Welcome, ${data.user.firstName}! ⚡`);
+                        const displayName = data.user.firstName || data.user.email?.split('@')[0] || 'User';
+                        toast.success(`Welcome, ${displayName}! ⚡`);
                         router.push(data.user.role === "admin" ? "/admin" : "/");
                     } else {
                         toast.error("Failed to authenticate");

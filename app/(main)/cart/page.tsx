@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -31,17 +31,24 @@ interface CartItemType {
 
 export default function CartPage() {
     const router = useRouter();
-    const { user } = useAuthStore();
+    const { user, token } = useAuthStore();
     const queryClient = useQueryClient();
     const { syncFromAPI, clearCart } = useCartStore();
+    const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
     // Redirect if user is not authenticated
     useEffect(() => {
-        if (user === null) {
-            toast.error("Please sign in to view your cart");
-            router.push("/login");
-        }
-    }, [user, router]);
+        // Small delay to allow zustand to hydrate from localStorage
+        const timer = setTimeout(() => {
+            setIsCheckingAuth(false);
+            if (!user && !token) {
+                toast.error("Please sign in to view your cart");
+                router.push("/login");
+            }
+        }, 100);
+
+        return () => clearTimeout(timer);
+    }, [user, token, router]);
 
     const { data, isLoading, isError, refetch } = useQuery({
         queryKey: ["cart"],
@@ -49,7 +56,7 @@ export default function CartPage() {
             const res = await cartApi.get();
             return res.data;
         },
-        enabled: !!user,
+        enabled: !!user && !isCheckingAuth,
         staleTime: 0, // Always consider data stale
         refetchOnWindowFocus: true, // Refetch when window gains focus
         refetchOnMount: true, // Always refetch when component mounts
@@ -59,14 +66,14 @@ export default function CartPage() {
 
     // Sync local cart store with server cart using new syncFromAPI method
     useEffect(() => {
-        if (data && !isLoading) {
+        if (data && !isLoading && !isCheckingAuth) {
             if (items.length === 0) {
                 clearCart();
             } else {
                 syncFromAPI({ items });
             }
         }
-    }, [data, items, isLoading, clearCart, syncFromAPI]);
+    }, [data, items, isLoading, clearCart, syncFromAPI, isCheckingAuth]);
 
     const clearMutation = useMutation({
         mutationFn: () => cartApi.clear(),
@@ -91,14 +98,14 @@ export default function CartPage() {
     const totalItems = items.reduce((acc, i) => acc + i.quantity, 0);
 
     // ── Loading ──
-    if (isLoading) {
+    if (isLoading || isCheckingAuth) {
         return (
             <div className="min-h-screen bg-[#080808] flex items-center justify-center">
                 <div className="flex flex-col items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-cyan-400/10 border border-cyan-400/20 flex items-center justify-center">
                         <Loader2 className="w-5 h-5 text-cyan-400 animate-spin" />
                     </div>
-                    <p className="text-xs text-white/30">Loading cart...</p>
+                    <p className="text-xs text-white/30">{isCheckingAuth ? 'Checking authentication...' : 'Loading cart...'}</p>
                 </div>
             </div>
         );
