@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Loader2, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
-import StripeCheckout from "@/components/checkout/StripeCheckoutNew";
+import StripeCheckout from "@/components/checkout/StripeCheckout";
 
 export default function PaymentPage() {
     const router = useRouter();
@@ -24,11 +24,9 @@ export default function PaymentPage() {
 
         try {
             const data = JSON.parse(storedData);
-            console.log('Payment data loaded:', data);
             
             // Validate required fields
             if (!data.clientSecret || !data.amount || !data.currency) {
-                console.error('Missing required payment data:', data);
                 toast.error("Invalid payment data. Please try again.");
                 router.push('/checkout');
                 return;
@@ -37,7 +35,6 @@ export default function PaymentPage() {
             setPaymentData(data);
             setIsLoading(false);
         } catch (error) {
-            console.error('Error parsing payment data:', error);
             toast.error("Invalid payment data. Please try again.");
             router.push('/checkout');
         }

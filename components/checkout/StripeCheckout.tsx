@@ -7,138 +7,184 @@ import { motion } from "framer-motion";
 import { CreditCard, Lock, AlertCircle } from "lucide-react";
 import { PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
 
-// Initialize Stripe
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "pk_test_123456789");
+// Initialize Stripe with your publishable key
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "pk_test_5123456789");
 
 interface StripeCheckoutProps {
   clientSecret: string;
-  onSuccess: () => void;
-  onError: (error: string) => void;
   amount: number;
   currency: string;
+  onSuccess: () => void;
+  onError: (error: string) => void;
 }
 
-export function StripeCheckoutWrapper({
-  clientSecret,
-  amount,
-  currency,
-  onSuccess,
-  onError,
-}: StripeCheckoutProps) {
-  const options = {
-    clientSecret,
-    appearance: {
-      theme: "night" as const,
-      variables: {
-        colorBackground: "#080808",
-        colorText: "#ffffff",
-        colorDanger: "#ef4444",
-        fontFamily: "system-ui, sans-serif",
-        spacingUnit: "4px",
-        borderRadius: "8px",
-      },
-    },
-  };
-
-  return (
-    <Elements options={options} stripe={stripePromise}>
-      <StripeCheckoutContent
-        amount={amount}
-        currency={currency}
-        onSuccess={onSuccess}
-        onError={onError}
-      />
-    </Elements>
-  );
-}
-
-function StripeCheckoutContent({
-  amount,
-  currency,
-  onSuccess,
-  onError,
-}: Omit<StripeCheckoutProps, 'clientSecret'>) {
+function CheckoutForm({ amount, currency, onSuccess, onError }: Omit<StripeCheckoutProps, 'clientSecret'>) {
   const stripe = useStripe();
   const elements = useElements();
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState<string>("");
-  const [elementsReady, setElementsReady] = useState(false);
+  const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
     if (elements) {
-      // Check if elements are ready
-      const checkReady = () => {
-        const paymentElement = elements.getElement('payment');
-        if (paymentElement) {
-          setElementsReady(true);
-        } else {
-          // Check again after a short delay
-          setTimeout(checkReady, 100);
-        }
+      let timeoutId: NodeJS.Timeout;
+      
+      // Listen for the 'ready' event from the Payment Element
+      const handleReady = () => {
+        setIsReady(true);
+        if (timeoutId) clearTimeout(timeoutId);
       };
-      checkReady();
+
+      const handleError = (event: any) => {
+        setMessage("Payment form failed to load. Please refresh the page or try again.");
+        if (timeoutId) clearTimeout(timeoutId);
+      };
+
+      // Set a timeout fallback
+      timeoutId = setTimeout(() => {
+        setIsReady(true);
+      }, 3000); // 3 seconds
+
+      // Get the payment element and add event listeners
+      const paymentElement = elements.getElement('payment');
+      if (paymentElement) {
+        paymentElement.on('ready', handleReady);
+        paymentElement.on('loaderror', handleError);
+      } else {
+        // Fallback: try to find the element after a short delay
+        setTimeout(() => {
+          const element = elements.getElement('payment');
+          if (element) {
+            element.on('ready', handleReady);
+            element.on('loaderror', handleError);
+          } else {
+            setIsReady(true);
+          }
+        }, 1000);
+      }
+
+      // Cleanup
+      return () => {
+        const element = elements.getElement('payment');
+        if (element) {
+          element.off('ready', handleReady);
+          element.off('loaderror', handleError);
+        }
+        if (timeoutId) clearTimeout(timeoutId);
+      };
     }
   }, [elements]);
-
-  useEffect(() => {
-    if (!stripe) return;
-
-    const urlParams = new URLSearchParams(window.location.search);
-    const paymentIntentId = urlParams.get("payment_intent");
-
-    if (paymentIntentId) {
-      stripe.retrievePaymentIntent(paymentIntentId).then(({ paymentIntent }) => {
-        switch (paymentIntent?.status) {
-          case "succeeded":
-            setMessage("Payment succeeded!");
-            onSuccess();
-            break;
-          case "processing":
-            setMessage("Your payment is processing.");
-            break;
-          case "requires_payment_method":
-            setMessage("Your payment was not successful, please try again.");
-            break;
-          default:
-            setMessage("Something went wrong.");
-            break;
-        }
-      });
-    }
-  }, [stripe, onSuccess]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!stripe || !elements || !elementsReady) {
-      setMessage("Payment system is not ready. Please wait a moment and try again.");
+    if (!stripe || !elements || !isReady) {
+      setMessage("Payment system is not ready. Please wait...");
+      return;
+    }
+
+    // Double-check Payment Element exists
+    const paymentElement = elements.getElement('payment');
+    if (!paymentElement) {
+      setMessage("Payment form is not ready. Please refresh the page.");
       return;
     }
 
     setIsLoading(true);
     setMessage("");
 
-    const result = await stripe.confirmPayment({
-      elements,
-      confirmParams: {
-        return_url: `${window.location.origin}/checkout/success`,
-      },
-      redirect: 'if_required'
-    });
+    try {
+      const { error } = await stripe.confirmPayment({
+        elements,
+        confirmParams: {
+          return_url: `${window.location.origin}/checkout/success`,
+        },
+        redirect: 'if_required' // Don't redirect automatically
+      });
 
-    if (result.error) {
-      if (result.error.type === "card_error" || result.error.type === "validation_error") {
-        setMessage(result.error.message || "An unexpected error occurred.");
+      if (error) {
+        setMessage(error.message || "An unexpected error occurred.");
+        onError(error.message || "Payment failed");
       } else {
-        setMessage("An unexpected error occurred.");
+        setMessage("Payment successful!");
+        onSuccess();
       }
+    } catch (err) {
+      setMessage("An unexpected error occurred.");
+      onError("Payment failed");
     }
 
     setIsLoading(false);
+  };
 
-    if (!result.error) {
-      onSuccess();
-    }
+  return (
+    <form onSubmit={handleSubmit} className="w-full">
+      <div className="mb-6">
+        {!isReady ? (
+          <div className="flex items-center justify-center py-8">
+            <div className="w-8 h-8 border-2 border-cyan-400/20 border-t-cyan-400 rounded-full animate-spin" />
+            <span className="ml-3 text-sm text-white/40">Loading payment form...</span>
+          </div>
+        ) : (
+          <PaymentElement />
+        )}
+      </div>
+
+      {message && (
+        <div className="mb-4 p-3 rounded-lg bg-red-400/[0.1] border border-red-400/20 flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 text-red-400" />
+          <div className="flex-1">
+            <p className="text-sm text-red-400">{message}</p>
+            {message.includes("failed to load") && (
+              <button
+                onClick={() => window.location.reload()}
+                className="mt-2 text-xs text-red-300 underline hover:text-red-200"
+              >
+                Retry
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      <button
+        disabled={isLoading || !stripe || !elements || !isReady}
+        className="w-full flex items-center justify-center gap-3 py-4 bg-cyan-400 text-black text-sm font-bold rounded-2xl hover:bg-cyan-300 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-[0_0_24px_rgba(34,211,238,0.3)] hover:shadow-[0_0_36px_rgba(34,211,238,0.45)]"
+      >
+        {isLoading ? (
+          <>
+            <div className="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin" />
+            Processing...
+          </>
+        ) : (
+          <>
+            Pay {new Intl.NumberFormat('en-US', {
+              style: 'currency',
+              currency: currency.toUpperCase(),
+            }).format(amount)}
+          </>
+        )}
+      </button>
+    </form>
+  );
+}
+
+export default function StripeCheckout({ clientSecret, amount, currency, onSuccess, onError }: StripeCheckoutProps) {
+  const appearance = {
+    theme: 'night' as const,
+    variables: {
+      colorBackground: '#080808',
+      colorText: '#ffffff',
+      colorDanger: '#ef4444',
+      fontFamily: 'system-ui, sans-serif',
+      spacingUnit: '4px',
+      borderRadius: '8px',
+    },
+  };
+
+  const options = {
+    clientSecret,
+    appearance,
   };
 
   return (
@@ -171,11 +217,10 @@ function StripeCheckoutContent({
           </p>
         </motion.div>
 
-        <motion.form
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          onSubmit={handleSubmit}
           className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-6"
         >
           {/* Security Badge */}
@@ -184,18 +229,6 @@ function StripeCheckoutContent({
             <p className="text-xs text-cyan-400/70">
               🔒 Your payment information is encrypted and secure
             </p>
-          </div>
-
-          {/* Payment Element */}
-          <div className="mb-6">
-            {!elementsReady ? (
-              <div className="flex items-center justify-center py-8">
-                <div className="w-8 h-8 border-2 border-cyan-400/20 border-t-cyan-400 rounded-full animate-spin" />
-                <span className="ml-3 text-sm text-white/40">Loading payment form...</span>
-              </div>
-            ) : (
-              <PaymentElement />
-            )}
           </div>
 
           {/* Order Summary */}
@@ -211,42 +244,20 @@ function StripeCheckoutContent({
             </div>
           </div>
 
-          {/* Error Message */}
-          {message && (
-            <div className="mb-4 p-3 rounded-lg bg-red-400/[0.1] border border-red-400/20 flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 text-red-400" />
-              <p className="text-sm text-red-400">{message}</p>
-            </div>
-          )}
-
-          {/* Submit Button */}
-          <button
-            disabled={isLoading || !stripe || !elements || !elementsReady}
-            className="w-full flex items-center justify-center gap-3 py-4 bg-cyan-400 text-black text-sm font-bold rounded-2xl hover:bg-cyan-300 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-[0_0_24px_rgba(34,211,238,0.3)] hover:shadow-[0_0_36px_rgba(34,211,238,0.45)]"
-          >
-            {isLoading ? (
-              <>
-                <div className="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin" />
-                Processing...
-              </>
-            ) : (
-              <>
-                Pay {new Intl.NumberFormat('en-US', {
-                  style: 'currency',
-                  currency: currency.toUpperCase(),
-                }).format(amount)}
-              </>
-            )}
-          </button>
+          <Elements options={options} stripe={stripePromise}>
+            <CheckoutForm
+              amount={amount}
+              currency={currency}
+              onSuccess={onSuccess}
+              onError={onError}
+            />
+          </Elements>
 
           <p className="text-xs text-white/20 text-center mt-4">
             Powered by Stripe • Secure payment processing
           </p>
-        </motion.form>
+        </motion.div>
       </div>
     </div>
   );
 }
-
-// Default export for the wrapper component
-export default StripeCheckoutWrapper;
