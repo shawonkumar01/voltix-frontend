@@ -6,6 +6,7 @@ import { Loader2 } from "lucide-react";
 import { useAuthStore } from "@/stores/auth.store";
 import { toast } from "sonner";
 
+export const dynamic = 'force-dynamic';
 export default function OAuthCallbackPage() {
     const router = useRouter();
     const searchParams = useSearchParams();
