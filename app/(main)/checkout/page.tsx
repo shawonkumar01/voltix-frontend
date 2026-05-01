@@ -36,6 +36,7 @@ export default function CheckoutPage() {
     const { user } = useAuthStore();
     const [isProcessing, setIsProcessing] = useState(false);
     const [orderCreated, setOrderCreated] = useState<string | null>(null);
+    const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'stripe' | 'cash_on_delivery'>('stripe');
 
     const {
         register,
@@ -101,7 +102,7 @@ export default function CheckoutPage() {
                 shippingZip: data.shippingZip,
                 shippingCountry: data.shippingCountry,
                 shippingPhone: data.shippingPhone,
-                paymentMethod: "stripe",
+                paymentMethod: selectedPaymentMethod,
             };
             return ordersApi.create(orderData);
         },
@@ -118,13 +119,30 @@ export default function CheckoutPage() {
 
     // Process payment mutation
     const paymentMutation = useMutation({
-        mutationFn: (orderId: string) => paymentsApi.createIntent(orderId),
+        mutationFn: (orderId: string) => paymentsApi.createIntent({ orderId, paymentMethod: selectedPaymentMethod }),
         onSuccess: (res) => {
-            // In a real app, you would redirect to Stripe checkout here
-            // For now, we'll simulate success
-            toast.success("Payment processed successfully");
-            queryClient.invalidateQueries({ queryKey: ["cart"] });
-            router.push(`/account/orders`);
+            if (selectedPaymentMethod === 'cash_on_delivery') {
+                // COD order is confirmed
+                toast.success("Order placed successfully! Pay on delivery.");
+                queryClient.invalidateQueries({ queryKey: ["cart"] });
+                router.push(`/checkout/success`);
+            } else {
+                // Stripe payment - redirect to Stripe checkout
+                if (res.data.clientSecret) {
+                    // Store payment data in sessionStorage for the checkout page
+                    sessionStorage.setItem('stripePaymentData', JSON.stringify({
+                        clientSecret: res.data.clientSecret,
+                        amount: res.data.amount,
+                        currency: res.data.currency,
+                        orderId: res.data.orderId || orderCreated
+                    }));
+                    // Redirect to Stripe checkout page
+                    router.push(`/checkout/payment`);
+                } else {
+                    toast.error("Failed to initialize payment");
+                    setIsProcessing(false);
+                }
+            }
         },
         onError: () => {
             toast.error("Payment failed");
@@ -354,16 +372,91 @@ export default function CheckoutPage() {
                                         >
                                             Payment Method
                                         </h2>
-                                        <p className="text-[11px] text-white/30">Secure payment with Stripe</p>
+                                        <p className="text-[11px] text-white/30">Choose your payment option</p>
                                     </div>
                                 </div>
 
-                                <div className="p-4 rounded-xl bg-cyan-400/[0.05] border border-cyan-400/20 flex items-center gap-3">
-                                    <CheckCircle2 className="w-5 h-5 text-cyan-400" />
-                                    <div>
-                                        <p className="text-sm font-semibold text-white">Stripe Test Mode</p>
-                                        <p className="text-[11px] text-white/40">No actual charges will be made</p>
-                                    </div>
+                                <div className="space-y-3">
+                                    {/* Stripe Option */}
+                                    <label className="relative cursor-pointer">
+                                        <input
+                                            type="radio"
+                                            name="paymentMethod"
+                                            value="stripe"
+                                            checked={selectedPaymentMethod === 'stripe'}
+                                            onChange={(e) => setSelectedPaymentMethod(e.target.value as 'stripe')}
+                                            className="sr-only"
+                                        />
+                                        <div className={`p-4 rounded-xl border transition-all ${
+                                            selectedPaymentMethod === 'stripe'
+                                                ? 'bg-cyan-400/[0.05] border-cyan-400/20'
+                                                : 'bg-white/[0.02] border-white/[0.06] hover:border-white/[0.10]'
+                                        }`}>
+                                            <div className="flex items-center gap-3">
+                                                <div className={`w-5 h-5 rounded-full border-2 transition-all ${
+                                                    selectedPaymentMethod === 'stripe'
+                                                        ? 'border-cyan-400 bg-cyan-400'
+                                                        : 'border-white/30'
+                                                }`}>
+                                                    {selectedPaymentMethod === 'stripe' && (
+                                                        <div className="w-full h-full flex items-center justify-center">
+                                                            <div className="w-2 h-2 bg-black rounded-full" />
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <div className="flex-1">
+                                                    <p className="text-sm font-semibold text-white">Credit/Debit Card</p>
+                                                    <p className="text-[11px] text-white/40">Pay securely with Stripe</p>
+                                                </div>
+                                                <CreditCard className="w-5 h-5 text-white/40" />
+                                            </div>
+                                        </div>
+                                    </label>
+
+                                    {/* Cash on Delivery Option */}
+                                    <label className="relative cursor-pointer">
+                                        <input
+                                            type="radio"
+                                            name="paymentMethod"
+                                            value="cash_on_delivery"
+                                            checked={selectedPaymentMethod === 'cash_on_delivery'}
+                                            onChange={(e) => setSelectedPaymentMethod(e.target.value as 'cash_on_delivery')}
+                                            className="sr-only"
+                                        />
+                                        <div className={`p-4 rounded-xl border transition-all ${
+                                            selectedPaymentMethod === 'cash_on_delivery'
+                                                ? 'bg-cyan-400/[0.05] border-cyan-400/20'
+                                                : 'bg-white/[0.02] border-white/[0.06] hover:border-white/[0.10]'
+                                        }`}>
+                                            <div className="flex items-center gap-3">
+                                                <div className={`w-5 h-5 rounded-full border-2 transition-all ${
+                                                    selectedPaymentMethod === 'cash_on_delivery'
+                                                        ? 'border-cyan-400 bg-cyan-400'
+                                                        : 'border-white/30'
+                                                }`}>
+                                                    {selectedPaymentMethod === 'cash_on_delivery' && (
+                                                        <div className="w-full h-full flex items-center justify-center">
+                                                            <div className="w-2 h-2 bg-black rounded-full" />
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <div className="flex-1">
+                                                    <p className="text-sm font-semibold text-white">Cash on Delivery</p>
+                                                    <p className="text-[11px] text-white/40">Pay when you receive your order</p>
+                                                </div>
+                                                <Truck className="w-5 h-5 text-white/40" />
+                                            </div>
+                                        </div>
+                                    </label>
+                                </div>
+
+                                <div className="mt-4 p-3 rounded-lg bg-cyan-400/[0.03] border border-cyan-400/10">
+                                    <p className="text-[11px] text-cyan-400/70">
+                                        {selectedPaymentMethod === 'stripe' 
+                                            ? '🔒 Secure SSL encryption - Your payment information is protected'
+                                            : '💵 Pay with cash when your order arrives'
+                                        }
+                                    </p>
                                 </div>
                             </div>
 
