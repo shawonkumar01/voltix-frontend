@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown, SlidersHorizontal, RotateCcw } from "lucide-react";
 import { categoriesApi } from "@/lib/api/categories";
-import type { Filters, SortOption } from "@/app/(main)/products/page";
+import type { Filters, SortOption } from "@/app/(main)/products/ProductsContent";
 
 interface Props {
     filters: Filters;
