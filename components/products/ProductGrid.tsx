@@ -227,7 +227,7 @@ function ProductCard({ product, index }: { product: Product; index: number }) {
 
                         <div className="flex items-baseline gap-1.5 mt-auto">
                             <span className="text-sm font-black text-white" style={{ fontFamily: "'Syne', sans-serif" }}>
-                                ${formatPrice(product.price)}
+                                ${formatPrice(finalPrice)}
                             </span>
 
                             {(product.discount ?? 0) > 0 && (
@@ -350,7 +350,7 @@ function ProductRow({ product, index }: { product: Product; index: number }) {
                     <div className="flex flex-col items-end justify-center gap-2 flex-shrink-0">
                         <div className="text-right">
                             <p className="text-sm font-black text-white" style={{ fontFamily: "'Syne', sans-serif" }}>
-                                ${formatPrice(product.price)}
+                                ${formatPrice(finalPrice)}
                             </p>
                             {(product.discount ?? 0) > 0 && (
                                 <p className="text-[10px] text-white/20 line-through">${formatPrice(product.price)}</p>
